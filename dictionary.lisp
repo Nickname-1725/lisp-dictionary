@@ -21,7 +21,7 @@
         (lambda (word) (eql spell (getf word :spell)))
         *words-db*)))
 
-;(set-word (find-word 'happy) :adj "快乐的")
+(set-word (find-word 'happy) :adj "快乐的")
 (defun remove-word (spell)
   (setf *words-db* (remove-if
                     (lambda (word) (eql spell (getf word :spell)))
@@ -48,7 +48,7 @@
 ;(set-word (find-word 'happy) :v "使快乐")
 ;(set-word (find-word 'happy) :adv "快乐地")
 ;(set-word (find-word 'happy) :prep "快！")
-;(display-word (find-word 'happy))
+(display-word (find-word 'happy))
 
 ;;;; 数据库的存档与加载
 (defun save-db (data-base filename)
@@ -60,11 +60,11 @@
 (defmacro load-db (data-base filename)
   `(with-open-file (in ,filename)
      (with-standard-io-syntax
-       (setf ,data-base (read in))))))
+       (setf ,data-base (read in)))))
 
 (defun save-words ()
   (save-db *words-db* "dictionary-words.db"))
 (defun load-words ()
   (load-db *words-db* "dictionary-words.db"))
-(save-words)
-;(load-words)
+;(save-words)
+(load-words)
