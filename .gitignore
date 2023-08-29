@@ -1,4 +1,6 @@
 *.lisp~
 *.fasl
 *.fas
+*.db
 .#-emacs*
+
