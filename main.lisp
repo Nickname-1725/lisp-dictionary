@@ -68,3 +68,35 @@
   (load-db *words-db* "dictionary-words.db"))
 ;(save-words)
 (load-words)
+
+;; 可以把some-information写成一个连续打印提示的函数，输入的参数就是列表
+;; ((command-1 "description 1")
+;;  (command-2 "discription 2"))
+(defun look-up ()
+  (let ((cmd (user-read)))
+    (unless (eq (car cmd) 'back)
+      '(some-information)
+      ;(user-eval cmd)
+      (look-up))))
+
+;; 可以作为一个通用的解析用户输入的函数
+(defun user-read ()
+  (let ((cmd (read-from-string
+              (concatenate 'string "(" (read-line) ")" ))))
+    (flet ((quote-it (x)
+             (list 'quote x)))
+      (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
+
+;; 可以考虑把以下整体在全局写成一个宏，由一个变量来代替函数中*allowed-commands*的位置
+;; 可以改造*allowed-commands*列表，引入命令的总词数
+;; ((command-1 3)
+;;  (command-2 1))
+;; 然后再在函数内计算命令的词数，判断命令是否合理（省略多余的词/抛出提示）
+(defparameter *allowed-commands* '(look-up quit back))
+(defun user-eval (sexp)
+  (if (member (car sexp) *allowed-commands*)
+      (eval sexp)
+      (format t "~%Not a valid command.")))
+
+
+

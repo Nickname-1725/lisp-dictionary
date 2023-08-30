@@ -91,10 +91,10 @@
    (defun user-repl ()
      (let ((cmd (user-read)) ;读取用户输入
            (allowed-cmds '(command-A command-B etc. ))) ; 允许命令，可作为全局变量，或者函数内的变量
-       (unless (eq (car cmd) 'quit-or-back)) ; 退出
-       (some-information) ; 用户提示信息；清屏并打印用户提示信息
-       (user-eval cmd) ; 用户命令执行
-       (user-repl))) ; 递归开启下一轮循环
+       (unless (eq (car cmd) 'quit-or-back) ; 退出
+         (some-information) ; 用户提示信息；清屏并打印用户提示信息
+         (user-eval cmd) ; 用户命令执行
+         (user-repl)))) ; 递归开启下一轮循环
    ```
 2. 可以将上述基础构造功能作为模板（宏、高阶函数），从而实现多个用户界面，并且以相互调用的形式实现跳转
 3. 子界面里面的小命令都省略了单词（进入子界面的时候，用户已经输入了单词名，所以无需再次输入），可以通过中函数内用`macrolet`定义局部宏的方式来定义小命令
