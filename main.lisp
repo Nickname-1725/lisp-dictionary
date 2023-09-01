@@ -43,7 +43,8 @@
     (display-class-word word :v)
     (display-class-word word :adj)
     (display-class-word word :adv)
-    (display-class-word word :prep)))
+    (display-class-word word :prep)
+    (format t "~%")))
 ;(set-word (find-word 'happy) :n "快乐")
 ;(set-word (find-word 'happy) :v "使快乐")
 ;(set-word (find-word 'happy) :adv "快乐地")
@@ -75,17 +76,22 @@
 ;;     ((command-1 "description 1")
 ;;      (command-2 "discription 2"))
 (defmacro user-repl* (cmd-desc u-eval)
-  `(lambda ()
+  `(lambda (spell)
      (labels
-         ((repl ()
-            (let ((cmd (user-read))
-                  (cmd-desc ,cmd-desc))
+         ((repl (spell)
+            (user-cmd-description ,cmd-desc)
+            (let ((cmd (user-read)))
               (unless (eq (car cmd) 'back)
                 (funcall ,u-eval cmd)
-                (user-cmd-description cmd-desc)
-                (repl)))))
+                (repl spell)))))
        ; 此处显示查询单词的情况
-       (repl))))
+       (let ((word (find-word spell)))
+         (if word
+             (progn
+               (format t "The target *~a* found.~%~%" spell)
+               (display-word word))
+             (format t "The taget *~a* does not exist.~%~%" spell)))
+       (repl spell))))
 (defparameter look-up
   (user-repl*
    '(("back" "go back to the main menu."))
