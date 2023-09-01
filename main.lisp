@@ -74,17 +74,26 @@
 ;; [x] 可以把some-information写成一个连续打印提示的函数，输入的参数就是列表
 ;;     ((command-1 "description 1")
 ;;      (command-2 "discription 2"))
-(defun look-up (cmd-desc)
-  (let ((cmd (user-read))
-        (cmd-desc cmd-desc))
-    (unless (eq (car cmd) 'back)
-      (user-cmd-description cmd-desc)
-      ;(user-eval cmd)
-      (look-up cmd-desc))))
+(defmacro user-repl* (cmd-desc u-eval)
+  `(lambda ()
+     (labels
+         ((repl ()
+            (let ((cmd (user-read))
+                  (cmd-desc ,cmd-desc))
+              (unless (eq (car cmd) 'back)
+                (funcall ,u-eval cmd)
+                (user-cmd-description cmd-desc)
+                (repl)))))
+       ; 此处显示查询单词的情况
+       (repl))))
+(defparameter look-up
+  (user-repl*
+   '(("back" "go back to the main menu."))
+   (user-eval* *allowed-commands*)))
 
 (defun user-cmd-description (cmd-desc)
   "依次打印命令的描述"
-  (format t "~{~%~{- ~a:~15t~a~}~}" cmd-desc))
+  (format t "~{~{- [~a~15t]: ~a~}~%~}" cmd-desc))
 
 ;; [x] 可以作为一个通用的解析用户输入的函数
 (defun user-read ()
@@ -109,5 +118,5 @@
        (if (and find-cmd
                 (eq (length sexp) (cadr find-cmd)))
            (eval sexp)
-           (format t "~%Not a valid command.")))))
+           (format t "Not a valid command.~%")))))
 (defparameter u-eval (user-eval* *allowed-commands*))
