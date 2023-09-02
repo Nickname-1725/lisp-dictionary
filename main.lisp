@@ -56,6 +56,7 @@
   (load-db *words-db* "dictionary-words.db"))
 
 ;;;; 用户交互功能
+
 (defun user-read ()
   "通用解析用户输入函数"
   (let ((cmd (read-from-string
@@ -68,6 +69,7 @@
   "模板，生成user-eval类型的函数，输入参数为允许的命令列表及允许词数
   allow-cmds: 应形如((command-1 3) (command-2 1))"
   `(lambda (sexp)
+     (format t "~c[2J~c[H" #\escape #\escape)
      (let* ((allow-cmds ,allow-cmds)
             (find-cmd (assoc (car sexp) allow-cmds)))
        (if (and find-cmd
@@ -91,20 +93,25 @@
               ; 此处显示查询单词的情况
               (if *the-word*
                   (progn
+                    ;(format t "~c[2J~c[H" #\escape #\escape)
                     (format t "The target *~a* found.~%~%" spell)
                     (display-word word))
-                  (format t "The taget *~a* does not exist.~%~%" spell))
+                  (progn
+                    ;(format t "~c[2J~c[H" #\escape #\escape)
+                    (format t "The taget *~a* does not exist.~%~%" spell)))
               ; 反馈可用命令
               (user-cmd-description ,cmd-desc)
               ; 执行用户命令
               (let ((cmd (user-read)))
-                (unless (eq (car cmd) 'back)
-                  (funcall ,u-eval cmd)
-                  (repl word)))))
+                (if (eq (car cmd) 'back)
+                    (format t "~c[2J~c[H" #\escape #\escape)
+                    (progn (funcall ,u-eval cmd)
+                           (repl word))))))
          (repl word)))))
 
 ;; 主REPL命令集
 (defun note-down (spell)
+  ;(format t "~c[2J~c[H" #\escape #\escape)
   (let ((word (find-word spell)))
                                         ; 此处显示查询单词的情况
     (if word
@@ -166,7 +173,6 @@
                         (wipe-clean)))))))
 
 ;; 主REPL
-
 (load-words) ; 自动加载存档
 (defun main-repl ()
   (format t "The dictionary opened. Wellcome back.~%")
@@ -189,5 +195,6 @@
                       (erase 2)
                       (restore 1)
                       (quit 1))) cmd)
+          ;(format t "~c[2J~c[H" #\escape #\escape)
           (main-repl)))))
 
