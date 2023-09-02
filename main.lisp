@@ -71,36 +71,6 @@
 (load-words)
 
 ;;;; 用户交互功能
-;; [ ] 把user-repl写成一个宏，输出无参递归调用函数
-;; [x] 可以把some-information写成一个连续打印提示的函数，输入的参数就是列表
-;;     ((command-1 "description 1")
-;;      (command-2 "discription 2"))
-(defmacro user-repl* (cmd-desc u-eval)
-  `(lambda (spell)
-     (labels
-         ((repl (spell)
-            (user-cmd-description ,cmd-desc)
-            (let ((cmd (user-read)))
-              (unless (eq (car cmd) 'back)
-                (funcall ,u-eval cmd)
-                (repl spell)))))
-       ; 此处显示查询单词的情况
-       (let ((word (find-word spell)))
-         (if word
-             (progn
-               (format t "The target *~a* found.~%~%" spell)
-               (display-word word))
-             (format t "The taget *~a* does not exist.~%~%" spell)))
-       (repl spell))))
-(defparameter look-up
-  (user-repl*
-   '(("back" "go back to the main menu."))
-   (user-eval* *allowed-commands*)))
-
-(defun user-cmd-description (cmd-desc)
-  "依次打印命令的描述"
-  (format t "~{~{- [~a~15t]: ~a~}~%~}" cmd-desc))
-
 ;; [x] 可以作为一个通用的解析用户输入的函数
 (defun user-read ()
   (let ((cmd (read-from-string
@@ -126,3 +96,54 @@
            (eval sexp)
            (format t "Not a valid command.~%")))))
 (defparameter u-eval (user-eval* *allowed-commands*))
+
+;;; 子repl模板
+(defun user-cmd-description (cmd-desc)
+  "依次打印命令的描述"
+  (format t "~{~{- [~a~15t]: ~a~}~%~}" cmd-desc))
+
+;; [x] 把user-repl写成一个宏，输出无参递归调用函数
+;; [x] 可以把some-information写成一个连续打印提示的函数，输入的参数就是列表
+;;     ((command-1 "description 1")
+;;      (command-2 "discription 2"))
+
+(defparameter *the-word* nil)
+(defmacro user-repl* (cmd-desc u-eval)
+  "子repl函数生成宏"
+  `(lambda (spell)
+     (let ((word (find-word spell)))
+       (setf *the-word* word)
+       (labels
+           ((repl (word)
+              ; 此处显示查询单词的情况
+              (if word
+                  (progn
+                    (format t "The target *~a* found.~%~%" spell)
+                    (display-word word))
+                  (format t "The taget *~a* does not exist.~%~%" spell))
+              ; 反馈可用命令
+              (user-cmd-description ,cmd-desc)
+              ; 执行用户命令
+              (let ((cmd (user-read)))
+                (unless (eq (car cmd) 'back)
+                  (funcall ,u-eval cmd)
+                  (repl word)))))
+         (repl word)))))
+
+;; 主REPL命令集
+(defparameter look-up
+  (user-repl*
+      '(("back" "go back to the main menu."))
+      (user-eval* '((back 1)))))
+(defparameter edit
+  (user-repl*
+      '(("back" "go back to the main menu.")
+        ("change key new-meaning" "change part of the speech of the target."))
+      (user-eval* '((back 1) (change 3)))))
+;; 子repl命令集
+(defun change (key value)
+  (set-word *the-word* key value))
+(defun )
+;(defmacro look-up (spell) `(funcall look-up-inner ,spell))
+;(defmacro edit (spell) `(funcall edit-inner ,spell))
+
