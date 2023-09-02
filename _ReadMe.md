@@ -14,9 +14,8 @@
    - 提示查询单词/词组的命令`look-up word-name`
    - 提示提示编辑单词/词组信息的命令`edit word-name`
    - 提示清除单词/词组的命令`erase word-name`
-   - [ ] 提示保存存档/保存存档并退出的命令`save/save-quit`
-   1. [ ] 存入单词/词组的命令`note-down word-name`
-      - 向用户提示返回命令`back`
+   - [r] 提示保存存档/保存存档并退出的命令`restore/quit`
+   1. [x] 存入单词/词组的命令`note-down word-name`
       - 查询用户键入的单词/词组名称，若有重复录入则反馈用户
       - 存入单词后立即编辑单词的信息（跳转到3.）
    2. [x] 查询单词/词组的命令`look-up word-name`
@@ -102,7 +101,4 @@
    - [x] `user-eval*`宏的全局变量`*allowed-commands*`参数化
    - [x] `user-read`函数保留为通用函数
    - [x] `user-repl`函数的宏化
-3. [ ] `user-repl`模板制造的函数的封装
-   - [x] 宏返回的函数以变量的形式储存，调用须借助`funcall`，可用宏进一步作为封装
-   - [ ] 将子repl命令的作用范围进一步局限在大REPL范围内，在函数内使用`macrolet`来实现函数内临时定义宏
 

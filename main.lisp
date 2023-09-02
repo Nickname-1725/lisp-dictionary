@@ -54,8 +54,6 @@
   (save-db *words-db* "dictionary-words.db"))
 (defun load-words ()
   (load-db *words-db* "dictionary-words.db"))
-;(save-words)
-(load-words)
 
 ;;;; 用户交互功能
 (defun user-read ()
@@ -106,21 +104,45 @@
          (repl word)))))
 
 ;; 主REPL命令集
-(defparameter look-up
+(defun note-down (spell)
+  (let ((word (find-word spell)))
+                                        ; 此处显示查询单词的情况
+    (if word
+        (progn
+          (format t "*~a* has already in our database.~%~%" spell)
+          (read-line))
+        (progn
+          (add-word (create-word spell))
+          (format t "The target *~a* has been add to our database.~%~%" spell)
+          (read-line)
+          (edit spell)))))
+
+(defparameter look-up-call
   (user-repl*
    '(("back" "go back to the main menu."))
    (user-eval* '((back 1)))))
-(defparameter edit
+(defparameter edit-call
   (user-repl*
    '(("back" "go back to the main menu.")
      ("change :key new-meaning" "to change part of the speech of the target."))
    (user-eval* '((back 1) (change 3)))))
-(defparameter erase
+(defparameter erase-call
   (user-repl*
    '(("back" "go back to the main menu.")
      ("wipe :key" "to wipe off part of the speech of the target.")
      ("wipe-clean" "to wipe off the whole target clean."))
    (user-eval* '((back 1) (wipe 2) (wipe-clean 1)))))
+(defmacro look-up (spell) `(funcall look-up-call ,spell))
+(defmacro edit (spell) `(funcall edit-call ,spell))
+(defmacro erase (spell) `(funcall erase-call ,spell))
+(defun restore ()
+  (save-words)
+  (format t "Neatly done.~%")
+  (read-line))
+(defun quit-the-main-repl ()
+  (save-words) ; 自动存档
+  (format t "The dictionary closed. Goodbye."))
+
 ;; 子repl命令集
 (defun change (key value)
   (set-word *the-word* key (prin1-to-string value)))
@@ -136,10 +158,36 @@
              (let ((option (read-from-string (read-line))))
                (cond ((eq 'y option)
                       (remove-word-spell (getf *the-word* :spell))
-                      (setf *the-word* nil))
+                      (setf *the-word* nil)
+                      (format t "Neatly-done.~%")
+                      (read-line))
                      ((eq 'n option))
                      (t (format t "yes or no?[y/n]~%")
                         (wipe-clean)))))))
-;(defmacro look-up (spell) `(funcall look-up-inner ,spell))
-;(defmacro edit (spell) `(funcall edit-inner ,spell))
+
+;; 主REPL
+
+(load-words) ; 自动加载存档
+(defun main-repl ()
+  (format t "The dictionary opened. Wellcome back.~%")
+  (user-cmd-description              ; 反馈可用命令
+   '(("note-down spell" "note-down a word.")
+     ("look-up sepll" "look up the dictionary for a word.")
+     ("edit spell" "correct the fault.")
+     ("erase spell" "slightly trim the item or just kill it.")
+     ("restore" "restore the data manually.")
+     ("quit" "close the dictionary. data will be automatically restored by your little helper.")))
+              ; 执行用户命令
+  (let ((cmd (user-read)))
+    (if (eq (car cmd) 'quit)
+        (quit-the-main-repl)
+        (progn
+          (funcall (user-eval*
+                    '((note-down 2)
+                      (look-up 2)
+                      (edit 2)
+                      (erase 2)
+                      (restore 1)
+                      (quit 1))) cmd)
+          (main-repl)))))
 
