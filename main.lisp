@@ -9,9 +9,6 @@
                :prep nil)))
 (defun add-word (word) (push word *words-db*))
 
-;(add-word (create-word 'happy))
-;(add-word (create-word 'sad))
-
 (defun set-word (word key value)
   "设置特定单词的关键字值，value应为字符串"
   (setf (getf word key) value))
@@ -22,17 +19,12 @@
         *words-db*)))
 
 (set-word (find-word 'happy) :adj "快乐的")
-(defun remove-word (spell)
+(defun remove-word-spell (spell)
   (setf *words-db* (remove-if
-                    (lambda (word) (eql spell (getf word :spell)))
+                    #'(lambda (word) (eq spell (getf word :spell)))
                     *words-db*)))
 (defun clean-class-word (word key)
   (set-word word key nil))
-
-;(add-word (create-word 'muddy))
-;(remove-word 'muddy)
-;(set-word (find-word 'sad) :n "欣喜若狂之人")
-;(clean-class-word (find-word 'sad) :n)
 
 (defun display-word (word)
   (flet ((display-class-word (word key)
@@ -45,11 +37,6 @@
     (display-class-word word :adv)
     (display-class-word word :prep)
     (format t "~%")))
-;(set-word (find-word 'happy) :n "快乐")
-;(set-word (find-word 'happy) :v "使快乐")
-;(set-word (find-word 'happy) :adv "快乐地")
-;(set-word (find-word 'happy) :prep "快！")
-(display-word (find-word 'happy))
 
 ;;;; 数据库的存档与加载
 (defun save-db (data-base filename)
@@ -71,20 +58,14 @@
 (load-words)
 
 ;;;; 用户交互功能
-;; [x] 可以作为一个通用的解析用户输入的函数
 (defun user-read ()
+  "通用解析用户输入函数"
   (let ((cmd (read-from-string
               (concatenate 'string "(" (read-line) ")" ))))
     (flet ((quote-it (x)
              (list 'quote x)))
       (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
 
-;; [x] 可以考虑把以下整体在全局写成一个宏，由一个变量来代替函数中*allowed-commands*的位置
-;; [x] 可以改造*allowed-commands*列表，引入命令的总词数
-;;     ((command-1 3)
-;;      (command-2 1))
-;; [x] 然后再在函数内计算命令的词数，判断命令是否合理（省略多余的词/抛出提示）
-(defparameter *allowed-commands* '((look-up 1) (quit 1) (back 1)))
 (defmacro user-eval* (allow-cmds)
   "模板，生成user-eval类型的函数，输入参数为允许的命令列表及允许词数
   allow-cmds: 应形如((command-1 3) (command-2 1))"
@@ -95,28 +76,22 @@
                 (eq (length sexp) (cadr find-cmd)))
            (eval sexp)
            (format t "Not a valid command.~%")))))
-(defparameter u-eval (user-eval* *allowed-commands*))
 
 ;;; 子repl模板
 (defun user-cmd-description (cmd-desc)
   "依次打印命令的描述"
   (format t "~{~{- [~a~15t]: ~a~}~%~}" cmd-desc))
 
-;; [x] 把user-repl写成一个宏，输出无参递归调用函数
-;; [x] 可以把some-information写成一个连续打印提示的函数，输入的参数就是列表
-;;     ((command-1 "description 1")
-;;      (command-2 "discription 2"))
-
 (defparameter *the-word* nil)
 (defmacro user-repl* (cmd-desc u-eval)
   "子repl函数生成宏"
   `(lambda (spell)
-     (let ((word (find-word spell)))
-       (setf *the-word* word)
+     (setf *the-word* (find-word spell))
+     (let ((word *the-word*))
        (labels
            ((repl (word)
               ; 此处显示查询单词的情况
-              (if word
+              (if *the-word*
                   (progn
                     (format t "The target *~a* found.~%~%" spell)
                     (display-word word))
@@ -133,17 +108,38 @@
 ;; 主REPL命令集
 (defparameter look-up
   (user-repl*
-      '(("back" "go back to the main menu."))
-      (user-eval* '((back 1)))))
+   '(("back" "go back to the main menu."))
+   (user-eval* '((back 1)))))
 (defparameter edit
   (user-repl*
-      '(("back" "go back to the main menu.")
-        ("change key new-meaning" "change part of the speech of the target."))
-      (user-eval* '((back 1) (change 3)))))
+   '(("back" "go back to the main menu.")
+     ("change :key new-meaning" "to change part of the speech of the target."))
+   (user-eval* '((back 1) (change 3)))))
+(defparameter erase
+  (user-repl*
+   '(("back" "go back to the main menu.")
+     ("wipe :key" "to wipe off part of the speech of the target.")
+     ("wipe-clean" "to wipe off the whole target clean."))
+   (user-eval* '((back 1) (wipe 2) (wipe-clean 1)))))
 ;; 子repl命令集
 (defun change (key value)
-  (set-word *the-word* key value))
-(defun )
+  (set-word *the-word* key (prin1-to-string value)))
+(defun wipe (key)
+  (clean-class-word *the-word* key))
+(defun wipe-clean ()
+  (if (not *the-word*)
+      (progn
+        (format t "Quite clean. Nothing to wipe off.")
+        (read-line))
+      (progn (format t "are you sure you want to wipe the hole target *~a* clean?[y/n]"
+                     (getf *the-word* :spell))
+             (let ((option (read-from-string (read-line))))
+               (cond ((eq 'y option)
+                      (remove-word-spell (getf *the-word* :spell))
+                      (setf *the-word* nil))
+                     ((eq 'n option))
+                     (t (format t "yes or no?[y/n]~%")
+                        (wipe-clean)))))))
 ;(defmacro look-up (spell) `(funcall look-up-inner ,spell))
 ;(defmacro edit (spell) `(funcall edit-inner ,spell))
 
