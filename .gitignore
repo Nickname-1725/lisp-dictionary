@@ -3,4 +3,6 @@
 *.fas
 *.db
 .#-emacs*
+*.o
+dictionary
 

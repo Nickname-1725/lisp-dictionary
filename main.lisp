@@ -75,7 +75,7 @@
        (if (and find-cmd
                 (eq (length sexp) (cadr find-cmd)))
            (eval sexp)
-           (format t "Not a valid command.~%")))))
+           (format t "Not a valid command. (✿ ◕ __ ◕ )~%")))))
 
 ;;; 子repl模板
 (defun user-cmd-description (cmd-desc)
@@ -94,11 +94,11 @@
               (if *the-word*
                   (progn
                     ;(format t "~c[2J~c[H" #\escape #\escape)
-                    (format t "The target *~a* found.~%~%" spell)
+                    (format t "The target *~a* found. (˵u_u˵)~%~%" spell)
                     (display-word word))
                   (progn
                     ;(format t "~c[2J~c[H" #\escape #\escape)
-                    (format t "The taget *~a* does not exist.~%~%" spell)))
+                    (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%~%" spell)))
               ; 反馈可用命令
               (user-cmd-description ,cmd-desc)
               ; 执行用户命令
@@ -116,11 +116,11 @@
                                         ; 此处显示查询单词的情况
     (if word
         (progn
-          (format t "*~a* has already in our database.~%~%" spell)
+          (format t "*~a* has already in our database.~%" spell)
           (read-line))
         (progn
           (add-word (create-word spell))
-          (format t "The target *~a* has been add to our database.~%~%" spell)
+          (format t "The target *~a* has been add to our database.~%" spell)
           (read-line)
           (edit spell)))))
 
@@ -148,7 +148,7 @@
   (read-line))
 (defun quit-the-main-repl ()
   (save-words) ; 自动存档
-  (format t "The dictionary closed. Goodbye."))
+  (format t "The dictionary closed. Goodbye. (⌐ ■ ᴗ ■ )"))
 
 ;; 子repl命令集
 (defun change (key value)
@@ -160,12 +160,16 @@
       (progn
         (format t "Quite clean. Nothing to wipe off.")
         (read-line))
-      (progn (format t "are you sure you want to wipe the hole target *~a* clean?[y/n]"
+      (progn (format t "are you sure you want to wipe the hole target *~a* clean? (˵u_u˵)[y/n]"
                      (getf *the-word* :spell))
-             (let ((option (read-from-string (read-line))))
+             (let* ((r-l (read-line))
+                    (option (read-from-string
+                             (if (eq (length r-l) 0)
+                                 "default" r-l))))
                (cond ((eq 'y option)
                       (remove-word-spell (getf *the-word* :spell))
                       (setf *the-word* nil)
+                      (format t "~c[2J~c[H" #\escape #\escape)
                       (format t "Neatly-done.~%")
                       (read-line))
                      ((eq 'n option))
@@ -173,16 +177,15 @@
                         (wipe-clean)))))))
 
 ;; 主REPL
-(load-words) ; 自动加载存档
 (defun main-repl ()
-  (format t "The dictionary opened. Wellcome back.~%")
+  (format t "The dictionary opened. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
   (user-cmd-description              ; 反馈可用命令
    '(("note-down spell" "note-down a word.")
      ("look-up sepll" "look up the dictionary for a word.")
      ("edit spell" "correct the fault.")
-     ("erase spell" "slightly trim the item or just kill it.")
+     ("erase spell" "give it a quick trim or eliminate it completely.")
      ("restore" "restore the data manually.")
-     ("quit" "close the dictionary. data will be automatically restored by your little helper.")))
+     ("quit" "close the dictionary. data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)")))
               ; 执行用户命令
   (let ((cmd (user-read)))
     (if (eq (car cmd) 'quit)
@@ -195,6 +198,8 @@
                       (erase 2)
                       (restore 1)
                       (quit 1))) cmd)
-          ;(format t "~c[2J~c[H" #\escape #\escape)
           (main-repl)))))
 
+(load-words) ; 自动加载存档
+(main-repl)
+(sleep 0.1)(quit)
