@@ -4,5 +4,9 @@
 *.db
 .#-emacs*
 *.o
+*.c
+*.data
+*.eclh
 dictionary
+dictionary-CLISP
 

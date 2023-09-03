@@ -55,9 +55,9 @@
        (setf ,data-base (read in)))))))
 
 (defun save-words ()
-  (save-db *words-db* "dictionary-words.db"))
+  (save-db *words-db* "~/.config/lisp-dictionary/dictionary-words.db"))
 (defun load-words ()
-  (load-db *words-db* "dictionary-words.db"))
+  (load-db *words-db* "~/.config/lisp-dictionary/dictionary-words.db"))
 
 ;;;; 用户交互功能
 
