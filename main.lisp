@@ -42,13 +42,17 @@
 (defun save-db (data-base filename)
   (with-open-file (out filename
                        :direction :output
-                       :if-exists :supersede)
+                       :if-exists :supersede
+                       :if-does-not-exist :create)
     (with-standard-io-syntax
       (print data-base out))))
 (defmacro load-db (data-base filename)
-  `(with-open-file (in ,filename)
+  `(let ((file-exists (probe-file ,filename)))
+     (when file-exists
+         (with-open-file (in ,filename
+                        :if-does-not-exist :error)
      (with-standard-io-syntax
-       (setf ,data-base (read in)))))
+       (setf ,data-base (read in)))))))
 
 (defun save-words ()
   (save-db *words-db* "dictionary-words.db"))
@@ -148,7 +152,7 @@
   (read-line))
 (defun quit-the-main-repl ()
   (save-words) ; 自动存档
-  (format t "The dictionary closed. Goodbye. (⌐ ■ ᴗ ■ )"))
+  (format t "The dictionary closed. Goodbye. (⌐ ■ ᴗ ■ )~%"))
 
 ;; 子repl命令集
 (defun change (key value)
@@ -181,7 +185,7 @@
   (format t "The dictionary opened. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
   (user-cmd-description              ; 反馈可用命令
    '(("note-down spell" "note-down a word.")
-     ("look-up sepll" "look up the dictionary for a word.")
+     ("look-up spell" "look up the dictionary for a word.")
      ("edit spell" "correct the fault.")
      ("erase spell" "give it a quick trim or eliminate it completely.")
      ("restore" "restore the data manually.")
