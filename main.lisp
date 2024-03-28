@@ -204,6 +204,8 @@
                       (quit 1))) cmd)
           (main-repl)))))
 
-(load-words) ; 自动加载存档
-(main-repl)
-(sleep 0.1)(quit)
+(defun init-fun ()
+  (load-words) ; 自动加载存档
+  (main-repl)
+  (sleep 0.1)(quit))
+
