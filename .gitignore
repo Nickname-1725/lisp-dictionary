@@ -1,12 +1,16 @@
+# emacs编辑产生
 *.lisp~
+.#-emacs*
+
+# 编译产生
 *.fasl
 *.fas
-*.db
-.#-emacs*
+# ECL编译产生
 *.o
 *.c
 *.data
 *.eclh
-dictionary
-dictionary-CLISP
+
+# 数据文件(不应再出现在该文件夹内)
+*.db
 
