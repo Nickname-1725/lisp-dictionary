@@ -54,10 +54,11 @@
      (with-standard-io-syntax
        (setf ,data-base (read in)))))))
 
+(defparameter *config-root* "~/.config/lisp-dictionary/")
 (defun save-words ()
-  (save-db *words-db* "~/.config/lisp-dictionary/dictionary-words.db"))
+  (save-db *words-db* (concatenate 'string *config-root* "dictionary-words.db")))
 (defun load-words ()
-  (load-db *words-db* "~/.config/lisp-dictionary/dictionary-words.db"))
+  (load-db *words-db* (concatenate 'string *config-root* "dictionary-words.db")))
 
 ;;;; 用户交互功能
 
