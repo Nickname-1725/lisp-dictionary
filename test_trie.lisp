@@ -67,3 +67,16 @@
     `(progn
        (format t "~a" (car ,x-list))
        (expand-list (quote ,(cdadr x-list))))))
+
+(defmacro expand-list-match (a-list x-list)
+  "一种宏递归匹配展开测试~@
+   能够自动处理a-list或x-list长度不足的问题"
+  (unless (or (eql nil x-list)
+              (eql nil (cadr x-list)))
+    `(progn
+       (if (eql (car ,a-list) (car ,x-list))
+           (progn
+             (cons (car ,x-list)
+              (expand-list-match
+               (quote ,(cdadr a-list))
+               (quote ,(cdadr x-list)))))))))
