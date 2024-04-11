@@ -44,6 +44,21 @@
     (if (or force-p (eql -1 previous-id))
         (setf (trie-node-id tr-node) id)
         previous-id)))
+(defun trie-remove-arc (tr-node char &rest force-p)
+  "根据字符移除trie的arc，返回~@
+   默认仅当被移除边为叶子边时使用，当force-p为真时强行移除"
+  (let ((arc-find (trie-access-arc tr-node char)))
+    (unless (eql nil arc-find)
+      (let ((target-node (trie-arc-node arc-find)))
+        (if (or force-p
+                (eql nil (trie-node-children target-node)))
+            (progn ; setf宏单独出现可能会导致运行不正确
+              (setf (trie-node-children tr-node)
+                    (remove arc-find (trie-node-children tr-node)))))))))
+;(defun trie-extract-word (tr-node string)
+;  "从trie中查找word，返回由node组成的list"
+;  (let ((char-list (coerce string 'list)))
+;    ))
 
 (defmacro expand-list (x-list)
   "一种宏递归展开测试"
