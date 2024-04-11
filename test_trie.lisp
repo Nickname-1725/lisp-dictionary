@@ -6,27 +6,28 @@
             (:constructor make-trie-arc nil)
             (:constructor trie-arc-with-char (char)))
   (char #\* :type standard-char)
-  (list nil :type list))
+  (node (make-trie-node) :type trie-node))
 
-(defparameter *trie* (make-trie-arc)) ; 位于trie根部的arc
-(defmacro trie-list-add-node (trie-list char)
-  `(let ((find (assoc ,char ,trie-list)))
-     (if (eql nil find)
-         (let ((trie-node (make-trie-node)))
-           (push (list ,char trie-node) ,trie-list))
-         nil)))
-(defun trie-sublist-with-char (trie-list char)
-  (trie-node-children (cadr (assoc char trie-list))))
-(defmacro trie-list-add-word (trie-list char-list)
-  (unless (eql nil char-list)
-    `(let ((char (car ,char-list)))
-       (trie-list-add-node ,trie-list char)
-       (trie-list-add-word (trie-sublist-with-char ,trie-list char)
-                           (cdr ,char-list)))))
-(defun trie-add-word (trie string)
-  (let ((trie-list (trie-list trie))
-        (char-list (coerce string 'list)))
-    (trie-list-add-word trie-list char-list)))
+(defparameter *trie* (make-trie-node)) ; 位于trie根部的node
+(defun trie-access-arc (tr-node char)
+  "根据字符获取trie的arc"
+  (find char (trie-node-children tr-node) :test
+        (lambda (char arc) (eq char (trie-arc-char arc)))))
+(defun trie-append-arc (tr-node char)
+  "根据字符添加trie的arc，返回叶子节点的node"
+  (let ((arc-find (trie-access-arc tr-node char)))
+    (if (eql nil arc-find)
+        (let ((arc-create (trie-arc-with-char char)))
+          (push arc-create (trie-node-children tr-node))
+          (trie-arc-node arc-create))
+        (trie-arc-node arc-find))))
+(defun trie-add-word (tr-node string)
+  "向trie中添加word，设置叶子节点的id"
+  (let* ((char-list (coerce string 'list))
+         (node-tail (reduce (lambda (node char)
+                              (trie-append-arc node char))
+                            char-list :initial-value tr-node)))
+    (setf (trie-node-id node-tail) 1)))
 
 (defmacro expand-list (x-list)
   "一种宏递归展开测试"
