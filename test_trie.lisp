@@ -1,11 +1,14 @@
 
-(defstruct (trie-node)
+(defstruct trie-node
   (children nil :type list)
   (id -1 :type number))
-(defstruct (trie)
+(defstruct (trie-arc
+            (:constructor make-trie-arc nil)
+            (:constructor trie-arc-with-char (char)))
+  (char #\* :type standard-char)
   (list nil :type list))
 
-(defparameter *trie* (make-trie))
+(defparameter *trie* (make-trie-arc)) ; 位于trie根部的arc
 (defmacro trie-list-add-node (trie-list char)
   `(let ((find (assoc ,char ,trie-list)))
      (if (eql nil find)
