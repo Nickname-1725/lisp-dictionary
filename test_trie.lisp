@@ -22,12 +22,28 @@
           (trie-arc-node arc-create))
         (trie-arc-node arc-find))))
 (defun trie-add-word (tr-node string)
-  "向trie中添加word，设置叶子节点的id"
+  "向trie中添加word，返回叶子节点的node"
   (let* ((char-list (coerce string 'list))
          (node-tail (reduce (lambda (node char)
                               (trie-append-arc node char))
                             char-list :initial-value tr-node)))
-    (setf (trie-node-id node-tail) 1)))
+    node-tail))
+(defun trie-find-word (tr-node string)
+  "从trie中查找word，返回叶子节点的node"
+  (let ((char-list (coerce string 'list)))
+    (reduce (lambda (node char)
+              (if (eql node nil) nil
+                  (let ((arc-find (trie-access-arc node char)))
+                    (if (eql nil arc-find) nil
+                        (trie-arc-node arc-find)))))
+            char-list :initial-value tr-node)))
+(defun trie-mark-node (tr-node id &rest force-p)
+  "给trie中的node标记id，返回操作后节点的id~@
+   默认仅当未标记时使用；当force-p为真时强行更改id"
+  (let ((previous-id (trie-node-id tr-node)))
+    (if (or force-p (eql -1 previous-id))
+        (setf (trie-node-id tr-node) id)
+        previous-id)))
 
 (defmacro expand-list (x-list)
   "一种宏递归展开测试"
