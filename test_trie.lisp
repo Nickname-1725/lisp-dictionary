@@ -27,10 +27,8 @@
 
 (defmacro expand-list (x-list)
   "一种宏递归展开测试"
-  (unless (eql nil x-list)
-  ;(let ((x-sublist `,(cdadr x-list)))
-    ;(format t "~a" x-sublist)
+  (unless (or (eql nil x-list)
+              (eql nil (cadr x-list)))
     `(progn
        (format t "~a" (car ,x-list))
-       (expand-list (quote ,(cdadr x-list)))
-       )));)
+       (expand-list (quote ,(cdadr x-list))))))
