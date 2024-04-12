@@ -55,10 +55,23 @@
             (progn ; setf宏单独出现可能会导致运行不正确
               (setf (trie-node-children tr-node)
                     (remove arc-find (trie-node-children tr-node)))))))))
-;(defun trie-extract-word (tr-node string)
-;  "从trie中查找word，返回由node组成的list"
-;  (let ((char-list (coerce string 'list)))
-;    ))
+(defun trie-extract-word (tr-node string)
+  "从trie中查找word，返回由node组成的list"
+  (labels ((extract-helper (tr-node char-list)
+             (let ((arc-find (trie-access-arc tr-node (car char-list))))
+               (unless (eql nil arc-find)
+                 (let ((node-find (trie-arc-node arc-find)))
+                   (cons node-find
+                         (extract-helper node-find (cdr char-list))))))))
+    (let ((char-list (coerce string 'list)))
+      (extract-helper tr-node char-list))))
+(defun trie-remove-word (tr-node string)
+  "从trie中移除word"
+  (let* ((char-list (coerce string 'list))
+         (reversed-char-list (reverse char-list))
+         (node-list (trie-extract-word tr-node string))
+         (reversed-parent-list (cdr (reverse (cons tr-node node-list)))))
+    (mapcar #'trie-remove-arc reversed-parent-list reversed-char-list)))
 
 (defmacro expand-list (x-list)
   "一种宏递归展开测试"
