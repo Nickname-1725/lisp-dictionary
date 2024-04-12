@@ -1,11 +1,15 @@
 (defpackage :trie-store
   (:use :cl)
   (:export
-     :*trie*
-     :trie-add-word
-     :trie-find-word
-     :trie-mark-node
-     :trie-remove-word))
+     ;:*trie*
+     ;:trie-add-word
+     ;:trie-find-word
+     ;:trie-mark-node
+     ;:trie-remove-word
+     :add-word
+     :find-word
+     :mark-word
+     :remove-word))
 (in-package :trie-store)
 
 (defstruct trie-node
@@ -17,7 +21,6 @@
   (char #\* :type standard-char)
   (node (make-trie-node) :type trie-node))
 
-(defparameter *trie* (make-trie-node)) ; 位于trie根部的node
 (defun trie-access-arc (tr-node char)
   "根据字符获取trie的arc"
   (find char (trie-node-children tr-node) :test
@@ -81,3 +84,9 @@
          (node-list (trie-extract-word tr-node string))
          (reversed-parent-list (cdr (reverse (cons tr-node node-list)))))
     (mapcar #'trie-remove-arc reversed-parent-list reversed-char-list)))
+
+(defparameter *trie* (make-trie-node)) ; 位于trie根部的node
+(defun add-word (string) (trie-add-word *trie* string))
+(defun find-word (string) (trie-find-word *trie* string))
+(defun mark-word (trie-word id) (trie-mark-node trie-word id))
+(defun remove-word (string) (trie-remove-word *trie* string))
