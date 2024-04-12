@@ -1,3 +1,12 @@
+(defpackage :trie-store
+  (:use :cl)
+  (:export
+     :*trie*
+     :trie-add-word
+     :trie-find-word
+     :trie-mark-node
+     :trie-remove-word))
+(in-package :trie-store)
 
 (defstruct trie-node
   (children nil :type list)
