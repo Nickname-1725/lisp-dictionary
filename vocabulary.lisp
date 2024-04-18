@@ -2,11 +2,11 @@
 (defstruct vocabulary-word
   (spell "" :type string)
   (id -1 :type number)
-  (n-def nil :type list)
-  (v-def nil :type list)
-  (adj-def nil :type list)
-  (adv-def nil :type list)
-  (prep-def nil :type list))
+  (n nil :type list)
+  (v nil :type list)
+  (adj nil :type list)
+  (adv nil :type list)
+  (prep nil :type list))
 
 (defparameter *vocabulary-table* (make-hash-table))
 (defun generate-id (length)
@@ -23,13 +23,36 @@
 (defun search-vocabulary (voc-table id)
   "根据id来获取word信息"
   (gethash id voc-table))
-(defun push-def-vocabulary (voc-word class def-string)
+(defun push-def (voc-word class def-string)
   "向单词释义中添加信息"
-  (if (and (slot-exists-p voc-word class))
+  (if (slot-exists-p voc-word class)
       (if (listp (slot-value voc-word class))
-          (push def-string (slot-value voc-word class))))))
-(defun correct-def-vocabulary (voc-word class correct-string index)
+          (push def-string (slot-value voc-word class)))))
+(defun correct-def (voc-word class correct-string index)
   "更正第index条释义"
-  (if (and (slot-exists-p voc-word class))
-      (if (listp (slot-value voc-word class))
-          (setf (nth index (slot-value voc-word class)) correct-string)))))
+  (if (slot-exists-p voc-word class)
+      (if (and (listp (slot-value voc-word class))
+               (< index (length (slot-value voc-word class))))
+          (setf (nth index (slot-value voc-word class)) correct-string))))
+(defun remove-def (voc-word class index)
+  "删除第index条释义"
+  (if (slot-exists-p voc-word class)
+      (if (and (listp (slot-value voc-word class))
+               (< index (length (slot-value voc-word class))))
+          (let ((item (nth index (slot-value voc-word class))))
+            (delete item (slot-value voc-word class) :start index :end (1+ index))))))
+(defun describe-def (voc-word)
+  "获得描述给定单词义项的字符串"
+  (let* ((def-string-list
+           (loop for slot in '(n v adj adv prep)
+                 collect
+                 (let ((def-list (slot-value voc-word slot))
+                       (counter 0))
+                   (unless (eql nil def-list)
+                     (format nil "*~a*:~8t~{~{~a) ~a~}; ~}~%" slot
+                             (mapcar #'(lambda (item)
+                                         (list (incf counter) item))
+                                     def-list))))))
+         (def-string-list (remove nil def-string-list))
+         (def-string (apply #'concatenate (cons 'string def-string-list))))
+    def-string))
