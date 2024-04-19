@@ -1,4 +1,17 @@
 
+(defpackage :vocabulary
+  (:use :cl)
+  (:export
+     :*vocabulary-table*
+     :id :spell :n :v :adj :adv :prep
+     :define-word
+     :search-word-by-id
+     :push-def-by-id
+     :correct-def-by-id
+     :remove-def-by-id
+     :describe-def-by-id))
+(in-package :vocabulary)
+
 (defstruct vocabulary-word
   (spell "" :type string)
   (id -1 :type number)
@@ -56,3 +69,19 @@
          (def-string-list (remove nil def-string-list))
          (def-string (apply #'concatenate (cons 'string def-string-list))))
     def-string))
+
+(defun define-word (spell)
+  (add-vocabulary *vocabulary-table* spell))
+(defun search-word-by-id (id)
+  (search-vocabulary *vocabulary-table* id))
+(defun push-def-by-id (id class-string def-string)
+  (let ((class (read-from-string (concatenate 'string "vocabulary:" class-string))))
+    (push-def (search-vocabulary *vocabulary-table* id) class def-string)))
+(defun correct-def-by-id (id class-string correct-string index)
+  (let ((class (read-from-string (concatenate 'string "vocabulary:" class-string))))
+    (correct-def (search-vocabulary *vocabulary-table* id) class correct-string index)))
+(defun remove-def-by-id (id class-string index)
+  (let ((class (read-from-string (concatenate 'string "vocabulary:" class-string))))
+    (remove-def (search-vocabulary *vocabulary-table* id) class index)))
+(defun describe-def-by-id (id)
+  (describe-def (search-vocabulary *vocabulary-table* id)))
