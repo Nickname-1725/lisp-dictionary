@@ -1,30 +1,38 @@
 "本脚本用于实现单词本"
-(defparameter *words-db* nil)
+(load "trie-store.lisp")
+(load "vocabulary.lisp")
 
 ;;;; 数据结构的存取、管理
-(defun create-word (spell)
-  (copy-list `(:spell ,spell
-               :n nil :v nil
-               :adj nil :adv nil
-               :prep nil)))
+;(defun create-word (spell)
+;  (copy-list `(:spell ,spell
+;               :n nil :v nil
+;               :adj nil :adv nil
+;               :prep nil)))
 (defun add-word (word) (push word *words-db*))
+; 其中(add-word(create-word spell))
+; 可以用(mark-word (add-word spell) (define-word spell))代替
 
 (defun set-word (word key value)
   "设置特定单词的关键字值，value应为字符串"
   (setf (getf word key) value))
+; 可以用(correct-def-by-id id class-string correct-string index)代替
+; 可以用(push-def-by-id id class-string def-string)代替
+; 可以用(remove-def-by-id id class-string index)代替
 (defun find-word (spell)
   "从字典中查找单词，若无则返回nil"
   (car (remove-if-not
         (lambda (word) (eql spell (getf word :spell)))
         *words-db*)))
+; 可以用(find-word spell)代替
 
-(set-word (find-word 'happy) :adj "快乐的")
 (defun remove-word-spell (spell)
   (setf *words-db* (remove-if
                     #'(lambda (word) (eq spell (getf word :spell)))
                     *words-db*)))
+; 暂无代替
 (defun clean-class-word (word key)
   (set-word word key nil))
+; 代替见上，或者也可以不代替
 
 (defun display-word (word)
   (flet ((display-class-word (word key)
@@ -37,6 +45,7 @@
     (display-class-word word :adv)
     (display-class-word word :prep)
     (format t "~%")))
+; 可以使用(describe-def-by-id id)
 
 ;;;; 数据库的存档与加载
 (defun save-db (data-base filename)
