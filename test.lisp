@@ -3,11 +3,6 @@
 (load "vocabulary.lisp")
 
 ;;;; 数据结构的存取、管理
-;(defun create-word (spell)
-;  (copy-list `(:spell ,spell
-;               :n nil :v nil
-;               :adj nil :adv nil
-;               :prep nil)))
 (defun add-word (word) (push word *words-db*))
 ; 其中(add-word(create-word spell))
 ; 可以用(mark-word (add-word spell) (define-word spell))代替
