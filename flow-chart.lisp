@@ -3,6 +3,24 @@
 (defun command-read-default ()
   "通用解析用户输入，输出字符串列表"
   (cl-ppcre:split "\\s+" (string-trim " " (read-line))))
+(defun string-list-match (string-list match-list) ; 可配合(find item seq :test ...)匹配
+  "string-list是字符串列表，match-list是由命令名和参数类型组成的列表"
+  ; 字符串列表长度不足，匹配失败
+  ; (若模板列表长度不足，则自动截断)x 若长度不等，则同样匹配失败
+  (when (eql (length match-list) (length string-list))
+    (let ((operator (car match-list))
+          (operator-string (car string-list))
+          (operand (cdr match-list))
+          (operand-string (cdr string-list)))
+      (if (eql operator (read-from-string operator-string)) ; 比较运算符
+          (cons operator
+                (mapcar #'(lambda (string type)
+                            (if (eql type 'string) ; 判断是否为字符串
+                                string
+                                ; 判断是否为数字或符号
+                                (let ((x (read-from-string string)))
+                                  (if (typep x type) x))))
+                        operand-string operand))))))
 
 ;; 本脚本模拟流程图
 (defstruct (state-node
