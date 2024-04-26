@@ -56,26 +56,27 @@
   "根据名字将节点设置为start"
   (let ((state (access-state diag name)))
     (if state
-        (setf (diagram-start diag) state)))))
+        (setf (diagram-start diag) state))))
 
-(defmacro diagram-realize (diag)
-  "输入图结构，输出匿名函数"
-  ; todo: 以test-macro为基础, 实现批量定义局部函数的宏
-  )
-
-(defmacro test-macro (name func-body)
+(defmacro local-fun-def (name func-body)
+  "根据函数体和名称创建局部定义函数格式的list"
+  `(,name (&rest args) args ,@func-body)) ; args用来消除警告
+(defmacro implement-fun-def (start-name fun-def-list)
+  "根据局部函数列表和入口函数来构造匿名函数格式的list"
   `(lambda ()
-     (labels ((,name (&rest args)
-                args
-                ,@func-body))
-       (,name)))
-  )
-(let ((name 'main)
-      (function-body '((+ 1 3))))
-  (macroexpand `(test-macro ,name ,function-body))) ; 是一个列表, 可使用eval执行
-; 可使用(cadr (caddr (cadr * )))来访问局部函数列表
+     (labels (,@fun-def-list)
+       (,start-name))))
 
-(let ((name 'main)
-      (function-body (state-node-activity (access-state *diagram* 'main))))
-  (macroexpand `(test-macro ,name ,function-body)))
-; 可使用(funcall (eval *)) 来执行
+(defun state-func-def (stat)
+  "输入state-node，输出局部定义函数的list表达"
+  (let ((name (state-node-name stat))
+        (func-body (state-node-activity stat)))
+    ; todo: 在func-body中添加关于读取和跳转的部分
+    (macroexpand `(local-fun-def ,name ,func-body))))
+
+(defun diagram-realize (diag)
+  "输入图结构，输出匿名函数"
+  (let ((func-def-list (mapcar #'state-func-def (diagram-all-states diag)))
+        (start-name (state-node-name (diagram-start diag))))
+    (macroexpand `(implement-fun-def ,start-name ,func-def-list))))
+
