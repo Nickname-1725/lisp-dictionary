@@ -1,15 +1,20 @@
 
+(ql:quickload :cl-ppcre)
+(defun command-read-default ()
+  "通用解析用户输入，输出字符串列表"
+  (cl-ppcre:split "\\s+" (string-trim " " (read-line))))
+
 ;; 本脚本模拟流程图
 (defstruct (state-node
             (:constructor make-state-node (name))
             ; 应当优先使用(不一定)
-            (:constructor create-state-node (name trans-read &rest activity))) 
+            (:constructor create-state-node (name &rest activity))) 
   "状态节点"
   (name nil :type symbol)
   ; 状态的指示
   (activity '(nil) :type list)
   ; 读取过程, 返回字符串列表
-  (trans-read #'(lambda () (list ""))
+  (trans-read #'command-read-default
    :type compiled-function)
   (trans-list nil :type list)) ;
 (defstruct (trans-arc
@@ -35,7 +40,6 @@
 
 (defparameter *diagram* (create-diagram
                          (create-state-node 'main
-                                            #'(lambda ())
                                             '(format t "Hello" ))))
 (defun access-state (diag name)
   "根据名字获取图结构中的状态节点"
@@ -69,8 +73,11 @@
 
 (defun state-func-def (stat)
   "输入state-node，输出局部定义函数的list表达"
-  (let ((name (state-node-name stat))
-        (func-body (state-node-activity stat)))
+  (let* ((name (state-node-name stat))
+         (outro (list (list 'funcall (state-node-trans-read stat))))
+         ; todo: outro这一部分将会拓展为读取和跳转部分
+         (func-body (state-node-activity stat))
+         (func-body (append func-body outro)))
     ; todo: 在func-body中添加关于读取和跳转的部分
     (macroexpand `(local-fun-def ,name ,func-body))))
 
