@@ -1,4 +1,6 @@
 
+;;;; 本脚本模拟repl流程图
+
 (ql:quickload :cl-ppcre)
 (defun command-read-default ()
   "通用解析用户输入，输出字符串列表"
@@ -22,7 +24,7 @@
                                   (if (typep x type) x))))
                         operand-string operand))))))
 
-;; 本脚本模拟流程图
+;;; 结构体定义
 (defstruct (state-node
             (:constructor make-state-node (name))
             ; 应当优先使用(不一定)
@@ -59,6 +61,7 @@
 (defparameter *diagram* (create-diagram
                          (create-state-node 'main
                                             '(format t "Hello" ))))
+;;; 图节点操作
 (defun access-state (diag name)
   "根据名字获取图结构中的状态节点"
   (find name (diagram-all-states diag)
@@ -79,7 +82,40 @@
   (let ((state (access-state diag name)))
     (if state
         (setf (diagram-start diag) state))))
+(defun set-state-activity (diag name activity-body)
+  "设置state的activity"
+  (setf (state-node-activity (access-state diag name)) activity-body))
+(defun set-state-reader (diag name reader-fun)
+  "设置state的读取函数(是已经编译函数的形式)"
+  (setf (state-node-trans-read (access-state diag name)) reader-fun))
 
+;;; 图边操作
+(defun search-match-list (stat match-list)
+  "从状态中查找匹配列表"
+  (find match-list (state-node-trans-list stat) 
+        :test #'(lambda (x arc)
+                  (let ((match-list (trans-arc-match-list arc)))
+                    (equal x match-list)))))
+(defun push-arc (stat next-stat match-list &rest body)
+  "对于两个状态之间，定义一个转换途径"
+  (unless (search-match-list stat match-list) ; 不能已经存在该match-list
+    (let ((arc (make-trans-arc next-stat)))
+      (setf (trans-arc-match-list arc) match-list)
+      (setf (trans-arc-eval arc) body)
+      (push arc (state-node-trans-list stat)))))
+(defun remove-arc (stat match-list)
+  "根据match-list删除state-node结构的arc"
+  (setf (state-node-trans-list stat)
+        (remove match-list (state-node-trans-list stat)
+                :test
+                #'(lambda (x arc)
+                    (let ((match-list (trans-arc-match-list arc)))
+                      (equal x match-list))))))
+(defun set-arc-eval (stat match-list eval-body)
+  "设置arc的eval"
+  (setf (trans-arc-eval (search-match-list stat match-list)) eval-body))
+
+;;; 转换器
 (defmacro local-fun-def (name func-body)
   "根据函数体和名称创建局部定义函数格式的list"
   `(,name (&rest args) args ,@func-body)) ; args用来消除警告
@@ -98,6 +134,18 @@
          (func-body (append func-body outro)))
     ; todo: 在func-body中添加关于读取和跳转的部分
     (macroexpand `(local-fun-def ,name ,func-body))))
+(defun index-list (list)
+  (let* ((indexed-list
+           (reduce #'(lambda (x y)
+                       (cons (list (if (eql nil x) 0 (1+ (caar x))) y)
+                             x))
+                   list :initial-value nil))
+         (indexed-list (reverse indexed-list)))
+    indexed-list))
+(defun eval-fun-def (stat)
+  "输入state-node，输出局部定义函数的list表达"
+  (let ((arc-list (state-node-trans-list stat)))
+    (index-list arc-list))) ;todo: 配合index-list跟replace-list完成该函数
 
 (defun diagram-realize (diag)
   "输入图结构，输出匿名函数"
