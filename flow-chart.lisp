@@ -111,7 +111,7 @@
                 #'(lambda (x arc)
                     (let ((match-list (trans-arc-match-list arc)))
                       (equal x match-list))))))
-(defun set-arc-eval (stat match-list eval-body)
+(defun set-arc-eval (stat match-list &rest eval-body)
   "设置arc的eval"
   (setf (trans-arc-eval (search-match-list stat match-list)) eval-body))
 
@@ -142,10 +142,33 @@
                    list :initial-value nil))
          (indexed-list (reverse indexed-list)))
     indexed-list))
+(defun replace-list (list target replace)
+  "在list中查找target符号(被引用的符号)，并替换为replace列表"
+  (mapcar #'(lambda (elem)
+              (cond
+                ((equal target elem) replace)
+                ((listp elem) (replace-list elem target replace))
+                (t elem)))
+          list))
 (defun eval-fun-def (stat)
   "输入state-node，输出局部定义函数的list表达"
-  (let ((arc-list (state-node-trans-list stat)))
-    (index-list arc-list))) ;todo: 配合index-list跟replace-list完成该函数
+  (let* ((arc-list (state-node-trans-list stat))
+         (real-eval-list (mapcar
+                          #'(lambda (arc)
+                              (let* ((eval (trans-arc-eval arc))
+                                     (next-name (state-node-name
+                                                 (trans-arc-next arc))))
+                                (replace-list eval ''target
+                                              (list next-name 'args))))
+                          arc-list))
+         (indexed-eval-list (index-list real-eval-list)))
+    (mapcar #'(lambda (x)
+                (macroexpand
+                 `(,(read-from-string (format nil "fun-~a" (car x))) ; 函数名
+                   (cmd-list &rest args) ; 参数列表
+                   ,@(car (cdr x))))) ; 函数体
+            indexed-eval-list)))
+; todo: 完成eval-cond-def函数, 运用读取函数，以及条件分支，来执行相应的fun-x
 
 (defun diagram-realize (diag)
   "输入图结构，输出匿名函数"
