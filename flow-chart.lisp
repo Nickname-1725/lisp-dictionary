@@ -120,17 +120,7 @@
   "设置arc的eval"
   (setf (trans-arc-eval (search-match-list stat match-list)) eval-body))
 
-;;; 测试用例
-(defparameter *diagram* (create-diagram
-                         (create-state-node 'main
-                                            '(format t "Hello" ))))
-(push-arc (diagram-start *diagram*) ; 无法再直接查看*diagram*
-          (diagram-start *diagram*)
-          '(echo number) 'args '(format t "Hello. You're a ~a.~%" (cadr cmd-list))
-          ''target)
-
 ;;; 转换器
-
 (defun replace-list (list target replace)
   "在list中查找target符号(被引用的符号)，并替换为replace列表"
   (mapcar #'(lambda (elem)
@@ -207,3 +197,21 @@
         (start-name (state-node-name (diagram-start diag))))
     (macroexpand `(implement-fun-def ,start-name ,func-def-list))))
 
+;;; 测试用例
+(defparameter *diagram* (create-diagram
+                         (create-state-node 'main
+                                            '(format t "Hello" ))))
+(push-arc (diagram-start *diagram*) ; 无法再直接查看*diagram*
+          (diagram-start *diagram*)
+          '(echo number) 'args '(format t "Hello. You're a ~a.~%" (cadr cmd-list))
+          ''target)
+; todo: 
+; 1. 更改push-arc的方法，增加排序，越长的表达式越靠前排列
+; 2. 更改匹配规则, 将match-list为nil的设置为永远匹配t，可用来作为错误结果的通配
+; 3. 生成labels局部定义函数的功能可以抽象出来
+; 4. 生成labels局部定义函数的功能应根据是否使用cmd-list/args的情况来决定入口参数是否丢弃(`(declare (ignore args))`). (或者也可以无需判断，而使用`(declare (ignorable args))`)
+; 5. 生成labels局部定义函数的功能应确切地根据'target的位置判断是否替换
+;    1). 在代码块的结尾
+;    2). 在条件分支的代码块结尾
+;    3). 在let宏下的代码块的结尾
+;    否则应当拒绝替换，从而配合尾递归优化
