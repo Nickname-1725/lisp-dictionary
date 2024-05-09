@@ -23,6 +23,14 @@
                                 (let ((x (read-from-string string)))
                                   (if (typep x type) x))))
                         operand-string operand))))))
+(defun index-list (list)
+  (let* ((indexed-list
+           (reduce #'(lambda (x y)
+                       (cons (list (if (eql nil x) 0 (1+ (caar x))) y)
+                             x))
+                   list :initial-value nil))
+         (indexed-list (reverse indexed-list)))
+    indexed-list))
 
 ;;; 结构体定义
 (defstruct (state-node
@@ -58,9 +66,6 @@
     (push start (diagram-all-states diagram))
     diagram))
 
-(defparameter *diagram* (create-diagram
-                         (create-state-node 'main
-                                            '(format t "Hello" ))))
 ;;; 图节点操作
 (defun access-state (diag name)
   "根据名字获取图结构中的状态节点"
@@ -115,7 +120,25 @@
   "设置arc的eval"
   (setf (trans-arc-eval (search-match-list stat match-list)) eval-body))
 
+;;; 测试用例
+(defparameter *diagram* (create-diagram
+                         (create-state-node 'main
+                                            '(format t "Hello" ))))
+(push-arc (diagram-start *diagram*) ; 无法再直接查看*diagram*
+          (diagram-start *diagram*)
+          '(echo number) 'args '(format t "Hello. You're a ~a.~%" (cadr cmd-list))
+          ''target)
+
 ;;; 转换器
+
+(defun replace-list (list target replace)
+  "在list中查找target符号(被引用的符号)，并替换为replace列表"
+  (mapcar #'(lambda (elem)
+              (cond
+                ((equal target elem) replace)
+                ((listp elem) (replace-list elem target replace))
+                (t elem)))
+          list))
 (defmacro local-fun-def (name func-body)
   "根据函数体和名称创建局部定义函数格式的list"
   `(,name (&rest args) args ,@func-body)) ; args用来消除警告
@@ -125,31 +148,6 @@
      (labels (,@fun-def-list)
        (,start-name))))
 
-(defun state-func-def (stat)
-  "输入state-node，输出局部定义函数的list表达"
-  (let* ((name (state-node-name stat))
-         (outro (list (list 'funcall (state-node-trans-read stat))))
-         ; todo: outro这一部分将会拓展为读取和跳转部分
-         (func-body (state-node-activity stat))
-         (func-body (append func-body outro)))
-    ; todo: 在func-body中添加关于读取和跳转的部分
-    (macroexpand `(local-fun-def ,name ,func-body))))
-(defun index-list (list)
-  (let* ((indexed-list
-           (reduce #'(lambda (x y)
-                       (cons (list (if (eql nil x) 0 (1+ (caar x))) y)
-                             x))
-                   list :initial-value nil))
-         (indexed-list (reverse indexed-list)))
-    indexed-list))
-(defun replace-list (list target replace)
-  "在list中查找target符号(被引用的符号)，并替换为replace列表"
-  (mapcar #'(lambda (elem)
-              (cond
-                ((equal target elem) replace)
-                ((listp elem) (replace-list elem target replace))
-                (t elem)))
-          list))
 (defun eval-fun-def (stat)
   "输入state-node，输出局部定义函数的list表达"
   (let* ((arc-list (state-node-trans-list stat))
@@ -168,7 +166,40 @@
                    (cmd-list &rest args) ; 参数列表
                    ,@(car (cdr x))))) ; 函数体
             indexed-eval-list)))
-; todo: 完成eval-cond-def函数, 运用读取函数，以及条件分支，来执行相应的fun-x
+
+(defun eval-cond-def (stat)
+  "输入stat，输出(let (...) (cond ...))表达"
+  (let* ((reader (state-node-trans-read stat))
+         (arc-list (state-node-trans-list stat))
+         (match-lists (mapcar #'(lambda (arc) (trans-arc-match-list arc))
+                              arc-list))
+         (cond-list (mapcar #'(lambda (match)
+                                (macroexpand `(string-list-match cmd-string-list
+                                                                 ',match)))
+                            match-lists))
+         (indexed-cond-list (index-list cond-list))
+         (cond-expr (cons 'cond
+                          (mapcar
+                           #'(lambda (cond-item-indexed)
+                               (let ((index (car cond-item-indexed))
+                                     (cond-item (cadr cond-item-indexed)))
+                                 (macroexpand
+                                  `(,cond-item
+                                    (,(read-from-string (format nil "fun-~a" index))
+                                     ,cond-item args)))))
+                           indexed-cond-list)))
+         (let-expr (macroexpand `(let ((cmd-string-list (funcall ,reader)))
+                                   ,cond-expr))))
+    let-expr))
+
+(defun state-func-def (stat)
+  "输入state-node，输出局部定义函数的list表达"
+  (let* ((name (state-node-name stat))
+         ; 读取和跳转部分生成器
+         (outro (macroexpand `(labels ,(eval-fun-def stat) ,(eval-cond-def stat))))
+         (func-body (state-node-activity stat))
+         (func-body (macroexpand `(,@func-body ,outro))))
+    (macroexpand `(local-fun-def ,name ,func-body))))
 
 (defun diagram-realize (diag)
   "输入图结构，输出匿名函数"
