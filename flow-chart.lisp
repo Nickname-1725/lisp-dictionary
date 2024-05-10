@@ -7,22 +7,35 @@
   (cl-ppcre:split "\\s+" (string-trim " " (read-line))))
 (defun string-list-match (string-list match-list) ; 可配合(find item seq :test ...)匹配
   "string-list是字符串列表，match-list是由命令名和参数类型组成的列表"
-  ; 字符串列表长度不足，匹配失败
-  ; (若模板列表长度不足，则自动截断)x 若长度不等，则同样匹配失败
-  (when (eql (length match-list) (length string-list))
-    (let ((operator (car match-list))
-          (operator-string (car string-list))
-          (operand (cdr match-list))
-          (operand-string (cdr string-list)))
-      (if (eql operator (read-from-string operator-string)) ; 比较运算符
-          (cons operator
-                (mapcar #'(lambda (string type)
-                            (if (eql type 'string) ; 判断是否为字符串
-                                string
-                                ; 判断是否为数字或符号
-                                (let ((x (read-from-string string)))
-                                  (if (typep x type) x))))
-                        operand-string operand))))))
+  (cond
+    ; 若匹配match-list为(), 则视为通配
+    ((eql nil match-list) t)
+    ; 字符串列表长度不足，匹配失败
+    ; (若模板列表长度不足，则自动截断)x 若长度不等，则同样匹配失败
+    ((eql (length match-list) (length string-list))
+     (let ((operator (car match-list))
+           (operator-string (car string-list))
+           (operand (cdr match-list))
+           (operand-string (cdr string-list)))
+       (if (eql operator (read-from-string operator-string)) ; 比较运算符
+           (let* ((operand-matched
+                    (mapcar #'(lambda (string type)
+                                (if (eql type 'string) ; 判断是否为字符串
+                                    string
+                                    ; 判断是否为数字或符号
+                                    (let ((x (read-from-string string)))
+                                      (if (typep x type) x))))
+                            operand-string operand))
+                  (verify-operand
+                    ; 检查每个元素是否不为nil
+                    (reduce #'(lambda (x y) (declare (ignore x))
+                                (if (eql nil y) nil t))
+                            operand-matched :initial-value nil)))
+             (cond
+               (verify-operand
+                (cons operator operand-matched) nil)
+               ; 没有带参数的命令直接为真
+               ((eql nil operand-matched) t))))))))
 (defun index-list (list)
   (let* ((indexed-list
            (reduce #'(lambda (x y)
@@ -107,7 +120,13 @@
     (let ((arc (make-trans-arc next-stat)))
       (setf (trans-arc-match-list arc) match-list)
       (setf (trans-arc-eval arc) body)
-      (push arc (state-node-trans-list stat)))))
+      ;(push arc (state-node-trans-list stat))
+      (let* ((arc-list-new (cons arc (state-node-trans-list stat)))
+             (arc-list-new (sort arc-list-new
+                                 #'(lambda (a b)
+                                     (> (length (trans-arc-match-list a))
+                                        (length (trans-arc-match-list b)))))))
+        (setf (state-node-trans-list stat) arc-list-new)))))
 (defun remove-arc (stat match-list)
   "根据match-list删除state-node结构的arc"
   (setf (state-node-trans-list stat)
@@ -205,9 +224,21 @@
           (diagram-start *diagram*)
           '(echo number) 'args '(format t "Hello. You're a ~a.~%" (cadr cmd-list))
           ''target)
+(push-arc (diagram-start *diagram*) ; 错误通配
+          (diagram-start *diagram*)
+          '() 'args 'cmd-list '(format t "You're prolly wrong. ~%")
+          ''target)
+(push-arc (diagram-start *diagram*) ; 判断给定整数
+          (diagram-start *diagram*)
+          '(read integer) 'args 'cmd-list
+          '(format t "The integer you gave is: ~a. ~%" (cadr cmd-list))
+          ''target)
+(push-arc (diagram-start *diagram*) ; 退出程序
+          (diagram-start *diagram*)
+          '(quit) 'args 'cmd-list '(format t "Good bye! ~%"))
 ; todo: 
-; 1. 更改push-arc的方法，增加排序，越长的表达式越靠前排列
-; 2. 更改匹配规则, 将match-list为nil的设置为永远匹配t，可用来作为错误结果的通配
+; 1. (V) 更改push-arc的方法，增加排序，越长的表达式越靠前排列
+; 2. (V) 更改匹配规则, 将match-list为nil的设置为永远匹配t，可用来作为错误结果的通配
 ; 3. 生成labels局部定义函数的功能可以抽象出来
 ; 4. 生成labels局部定义函数的功能应根据是否使用cmd-list/args的情况来决定入口参数是否丢弃(`(declare (ignore args))`). (或者也可以无需判断，而使用`(declare (ignorable args))`)
 ; 5. 生成labels局部定义函数的功能应确切地根据'target的位置判断是否替换
