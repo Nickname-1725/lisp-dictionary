@@ -32,8 +32,7 @@
                                 (if (eql nil y) nil t))
                             operand-matched :initial-value nil)))
              (cond
-               (verify-operand
-                (cons operator operand-matched) nil)
+               (verify-operand (cons operator operand-matched))
                ; 没有带参数的命令直接为真
                ((eql nil operand-matched) t))))))))
 (defun index-list (list)
