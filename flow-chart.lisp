@@ -150,7 +150,7 @@
           list))
 (defmacro local-fun-def (name func-body)
   "根据函数体和名称创建局部定义函数格式的list"
-  `(,name (&rest args) args ,@func-body)) ; args用来消除警告
+  `(,name (&rest args) (declare (ignorable args)) ,@func-body))
 (defmacro implement-fun-def (start-name fun-def-list)
   "根据局部函数列表和入口函数来构造匿名函数格式的list"
   `(lambda ()
@@ -173,6 +173,7 @@
                 (macroexpand
                  `(,(read-from-string (format nil "fun-~a" (car x))) ; 函数名
                    (cmd-list &rest args) ; 参数列表
+                   (declare (ignorable cmd-list args))
                    ,@(car (cdr x))))) ; 函数体
             indexed-eval-list)))
 
@@ -222,25 +223,25 @@
                                             '(format t "Hello" ))))
 (push-arc (diagram-start *diagram*) ; 无法再直接查看*diagram*
           (diagram-start *diagram*)
-          '(echo number) 'args '(format t "Hello. You're a ~a.~%" (cadr cmd-list))
+          '(echo number) '(format t "Hello. You're a ~a.~%" (cadr cmd-list))
           ''target)
 (push-arc (diagram-start *diagram*) ; 错误通配
           (diagram-start *diagram*)
-          '() 'args 'cmd-list '(format t "You're prolly wrong. ~%")
+          '() '(format t "You're prolly wrong. ~%")
           ''target)
 (push-arc (diagram-start *diagram*) ; 判断给定整数
           (diagram-start *diagram*)
-          '(read integer) 'args 'cmd-list
+          '(read integer)
           '(format t "The integer you gave is: ~a. ~%" (cadr cmd-list))
           ''target)
 (push-arc (diagram-start *diagram*) ; 退出程序
           (diagram-start *diagram*)
-          '(quit) 'args 'cmd-list '(format t "Good bye! ~%"))
+          '(quit) '(format t "Good bye! ~%"))
 ; todo: 
 ; 1. (V) 更改push-arc的方法，增加排序，越长的表达式越靠前排列
 ; 2. (V) 更改匹配规则, 将match-list为nil的设置为永远匹配t，可用来作为错误结果的通配
-; 3. 生成labels局部定义函数的功能可以抽象出来
-; 4. 生成labels局部定义函数的功能应根据是否使用cmd-list/args的情况来决定入口参数是否丢弃(`(declare (ignore args))`). (或者也可以无需判断，而使用`(declare (ignorable args))`)
+; 3. (X) 生成labels局部定义函数的功能可以抽象出来
+; 4. (V) 生成labels局部定义函数的功能应根据是否使用cmd-list/args的情况来决定入口参数是否丢弃(`(declare (ignore args))`). (或者也可以无需判断，而使用`(declare (ignorable args))`)
 ; 5. 生成labels局部定义函数的功能应确切地根据'target的位置判断是否替换
 ;    1). 在代码块的结尾
 ;    2). 在条件分支的代码块结尾
