@@ -142,12 +142,7 @@
 ;;; 转换器
 (defun replace-list (list target replace)
   "在list中查找target符号(被引用的符号)，并替换为replace列表"
-  (mapcar #'(lambda (elem)
-              (cond
-                ((equal target elem) replace)
-                ((listp elem) (replace-list elem target replace))
-                (t elem)))
-          list))
+  (sublis (macroexpand `((,target . ,replace))) list :test #'equal))
 (defmacro local-fun-def (name func-body)
   "根据函数体和名称创建局部定义函数格式的list"
   `(,name (&rest args) (declare (ignorable args)) ,@func-body))
