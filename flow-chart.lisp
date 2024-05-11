@@ -83,17 +83,18 @@
   "根据名字获取图结构中的状态节点"
   (find name (diagram-all-states diag)
         :test (lambda (x item) (eql x (state-node-name item)))))
-(defun push-state (diag name)
-  "根据名字创建图结构节点"
-  (unless (access-state diag name)
-    (let ((state (make-state-node name)))
-      (push state (diagram-all-states diag)))))
 (defun remove-state (diag name)
   "根据名字删除图结构节点(除了start以外)"
   (unless (eql name (state-node-name (diagram-start diag)))
     (setf (diagram-all-states diag)
           (remove name (diagram-all-states diag)
              :test (lambda (x item) (eql x (state-node-name item)))))))
+(defun push-state (diag name)
+  "根据名字创建图结构节点"
+  (if (access-state diag name)
+      (remove-state diag name))
+  (let ((state (make-state-node name)))
+    (push state (diagram-all-states diag))))
 (defun set-start (diag name)
   "根据名字将节点设置为start"
   (let ((state (access-state diag name)))
@@ -113,18 +114,6 @@
         :test #'(lambda (x arc)
                   (let ((match-list (trans-arc-match-list arc)))
                     (equal x match-list)))))
-(defun push-arc (stat next-stat match-list &rest body)
-  "对于两个状态之间，定义一个转换途径"
-  (unless (search-match-list stat match-list) ; 不能已经存在该match-list
-    (let ((arc (make-trans-arc next-stat)))
-      (setf (trans-arc-match-list arc) match-list)
-      (setf (trans-arc-eval arc) body)
-      (let* ((arc-list-new (cons arc (state-node-trans-list stat)))
-             (arc-list-new (sort arc-list-new
-                                 #'(lambda (a b)
-                                     (> (length (trans-arc-match-list a))
-                                        (length (trans-arc-match-list b)))))))
-        (setf (state-node-trans-list stat) arc-list-new)))))
 (defun remove-arc (stat match-list)
   "根据match-list删除state-node结构的arc"
   (setf (state-node-trans-list stat)
@@ -133,6 +122,19 @@
                 #'(lambda (x arc)
                     (let ((match-list (trans-arc-match-list arc)))
                       (equal x match-list))))))
+(defun push-arc (stat next-stat match-list &rest body)
+  "对于两个状态之间，定义一个转换途径"
+  (if (search-match-list stat match-list)
+      (remove-arc stat match-list))
+  (let ((arc (make-trans-arc next-stat)))
+    (setf (trans-arc-match-list arc) match-list)
+    (setf (trans-arc-eval arc) body)
+    (let* ((arc-list-new (cons arc (state-node-trans-list stat)))
+           (arc-list-new (sort arc-list-new
+                               #'(lambda (a b)
+                                   (> (length (trans-arc-match-list a))
+                                      (length (trans-arc-match-list b)))))))
+      (setf (state-node-trans-list stat) arc-list-new))))
 (defun set-arc-eval (stat match-list &rest eval-body)
   "设置arc的eval"
   (setf (trans-arc-eval (search-match-list stat match-list)) eval-body))
