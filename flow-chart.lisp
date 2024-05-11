@@ -66,6 +66,7 @@
   (match-list 'nil :type list)
   ; 转换过程eval
   (eval '(nil) :type list)) 
+
 (defstruct (diagram
             ; 必须指定start才能创建
             (:constructor make-diagram (start))) 
@@ -77,6 +78,11 @@
   (let ((diagram (make-diagram start)))
     (push start (diagram-all-states diagram))
     diagram))
+(defmethod print-object ((diag diagram) stream)
+  "用来打印diagram结构体的描述"
+  (declare (ignorable diag)) ; todo: 使用广度优先搜索
+  (let ((printed-nodes nil))
+    (format stream "~a" (state-node-name (diagram-start diag)))))
 
 ;;; 图节点操作
 (defun access-state (diag name)
