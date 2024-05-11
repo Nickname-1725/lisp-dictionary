@@ -119,7 +119,6 @@
     (let ((arc (make-trans-arc next-stat)))
       (setf (trans-arc-match-list arc) match-list)
       (setf (trans-arc-eval arc) body)
-      ;(push arc (state-node-trans-list stat))
       (let* ((arc-list-new (cons arc (state-node-trans-list stat)))
              (arc-list-new (sort arc-list-new
                                  #'(lambda (a b)
@@ -231,13 +230,3 @@
 (push-arc (diagram-start *diagram*) ; 退出程序
           (diagram-start *diagram*)
           '(quit) '(format t "Good bye! ~%"))
-; todo: 
-; 1. (V) 更改push-arc的方法，增加排序，越长的表达式越靠前排列
-; 2. (V) 更改匹配规则, 将match-list为nil的设置为永远匹配t，可用来作为错误结果的通配
-; 3. (X) 生成labels局部定义函数的功能可以抽象出来
-; 4. (V) 生成labels局部定义函数的功能应根据是否使用cmd-list/args的情况来决定入口参数是否丢弃(`(declare (ignore args))`). (或者也可以无需判断，而使用`(declare (ignorable args))`)
-; 5. 生成labels局部定义函数的功能应确切地根据'target的位置判断是否替换
-;    1). 在代码块的结尾
-;    2). 在条件分支的代码块结尾
-;    3). 在let宏下的代码块的结尾
-;    否则应当拒绝替换，从而配合尾递归优化
