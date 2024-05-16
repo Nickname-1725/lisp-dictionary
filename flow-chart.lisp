@@ -78,11 +78,60 @@
   (let ((diagram (make-diagram start)))
     (push start (diagram-all-states diagram))
     diagram))
+(defun diagram-to-tree (diag)
+  "用来将图结构转换为树结构"
+  (labels ((register-make ()
+             "记录节点，若为新节点则返回t，否则返回nil"
+             (let ((item-list nil))
+               (lambda (item)
+                 (if (find item item-list) nil
+                     (progn (push item item-list) t)))))
+           (handler (gra-node duplicate-p)
+             "将图转化为树"
+             (let ((children (state-node-trans-list gra-node))
+                   (node-name (state-node-name gra-node)))
+               ;(if children ; 判断为树
+               (let* ((leaf-p (not (funcall duplicate-p node-name)))
+                      (children
+                        (if leaf-p nil
+                            (mapcar #'(lambda (arc) (trans-arc-next arc))
+                                    children)))
+                      (children (remove-duplicates children))
+                      (sub-tree-list
+                        (mapcar #'(lambda (stat-node)
+                                    (handler stat-node duplicate-p))
+                                children))
+                      (node-name
+                        (if leaf-p
+                            (read-from-string (format nil "[~a]" node-name))
+                            node-name)))
+                 (cons node-name sub-tree-list)))))
+    (let ((duplicate-p (register-make)))
+      (handler (diagram-start diag) duplicate-p))))
+(defun print-tree (tree &optional (prefix-head "") (prefix-body "") (stream t))
+  "打印树结构"
+  (format  stream "~a~a~%" prefix-head (car tree))
+  (labels ((handle-sub-tree (sub-tree attach-head attach-body)
+	     (let ((next-prefix-head (concatenate 'string prefix-body attach-head))
+		   (next-prefix-body (concatenate 'string prefix-body attach-body))
+		   (sub-tree (if (listp sub-tree)
+				 sub-tree (list sub-tree))))
+	       (print-tree sub-tree
+			   next-prefix-head
+			   next-prefix-body
+                           stream))))
+    (if (cdr tree)
+	(let* ((reversed-branch (reverse (cdr tree)))
+	       (branch-but-last (reverse (cdr reversed-branch)))
+	       (branch-last (car reversed-branch)))
+	  (mapcar #'(lambda (sub-tree)
+		      (handle-sub-tree sub-tree "├ " "│ "))
+		  branch-but-last)
+          (handle-sub-tree branch-last "└ " "  ")))))
 (defmethod print-object ((diag diagram) stream)
   "用来打印diagram结构体的描述"
-  (declare (ignorable diag)) ; todo: 使用广度优先搜索
-  (let ((printed-nodes nil))
-    (format stream "~a" (state-node-name (diagram-start diag)))))
+  (format stream "#S(diagram):~%")
+  (print-tree (diagram-to-tree diag) "" "" stream))
 
 ;;; 图节点操作
 (defun access-state (diag name)
@@ -222,8 +271,10 @@
 (defparameter *diagram* (create-diagram
                          (create-state-node 'main
                                             '(format t "Hello" ))))
-(push-arc (diagram-start *diagram*) ; 无法再直接查看*diagram*
-          (diagram-start *diagram*)
+(push-state *diagram* 'echo-number)
+(push-state *diagram* 'read)
+(push-arc (diagram-start *diagram*)
+          (access-state *diagram* 'echo-number)
           '(echo number) '(format t "Hello. You're a ~a.~%" (cadr cmd-list))
           ''target)
 (push-arc (diagram-start *diagram*) ; 错误通配
@@ -231,7 +282,7 @@
           '() '(format t "You're prolly wrong. ~%")
           ''target)
 (push-arc (diagram-start *diagram*) ; 判断给定整数
-          (diagram-start *diagram*)
+          (access-state *diagram* 'read)
           '(read integer)
           '(format t "The integer you gave is: ~a. ~%" (cadr cmd-list))
           ''target)
