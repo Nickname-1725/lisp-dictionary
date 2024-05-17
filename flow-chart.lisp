@@ -48,7 +48,7 @@
 (defstruct (state-node
             (:constructor make-state-node (name))
             ; 应当优先使用(不一定)
-            (:constructor create-state-node (name &rest activity))) 
+            (:constructor create-state-node (name activity))) 
   "状态节点"
   (name nil :type symbol)
   ; 状态的指示
@@ -177,7 +177,7 @@
                 #'(lambda (x arc)
                     (let ((match-list (trans-arc-match-list arc)))
                       (equal x match-list))))))
-(defun push-arc (stat next-stat match-list &rest body)
+(defun push-arc (stat next-stat match-list body)
   "对于两个状态之间，定义一个转换途径"
   (if (search-match-list stat match-list)
       (remove-arc stat match-list))
@@ -190,7 +190,7 @@
                                    (> (length (trans-arc-match-list a))
                                       (length (trans-arc-match-list b)))))))
       (setf (state-node-trans-list stat) arc-list-new))))
-(defun set-arc-eval (stat match-list &rest eval-body)
+(defun set-arc-eval (stat match-list eval-body)
   "设置arc的eval"
   (setf (trans-arc-eval (search-match-list stat match-list)) eval-body))
 
@@ -268,25 +268,31 @@
         (start-name (state-node-name (diagram-start diag))))
     (macroexpand `(implement-fun-def ,start-name ,func-def-list))))
 
+;;; 宏的封装
+(defmacro def-init (diag start-name &rest body)
+  `(defparameter ,diag (create-diagram (create-state-node ,start-name (quote ,body)))))
+(defmacro def-state (diag stat-name &rest body)
+  `(progn
+     (push-state ,diag ,stat-name)
+     (set-state-activity ,diag ,stat-name ',body)))
+(defmacro def-arc (diag stat-from stat-to match-list &rest body)
+  `(push-arc (access-state ,diag ,stat-from)
+             (access-state ,diag ,stat-to)
+             ,match-list ',body))
+
 ;;; 测试用例
-(defparameter *diagram* (create-diagram
-                         (create-state-node 'main
-                                            '(format t "Hello" ))))
-(push-state *diagram* 'echo-number)
-(push-state *diagram* 'read)
-(push-arc (diagram-start *diagram*)
-          (access-state *diagram* 'echo-number)
-          '(echo number) '(format t "Hello. You're a ~a.~%" (cadr cmd-list))
-          ''target)
-(push-arc (diagram-start *diagram*) ; 错误通配
-          (diagram-start *diagram*)
-          '() '(format t "You're prolly wrong. ~%")
-          ''target)
-(push-arc (diagram-start *diagram*) ; 判断给定整数
-          (access-state *diagram* 'read)
-          '(read integer)
-          '(format t "The integer you gave is: ~a. ~%" (cadr cmd-list))
-          ''target)
-(push-arc (diagram-start *diagram*) ; 退出程序
-          (diagram-start *diagram*)
-          '(quit) '(format t "Good bye! ~%"))
+(def-init *diagram* 'main
+  (format t "Hello"))
+(def-state *diagram* 'echo-number)
+(def-state *diagram* 'read)
+(def-arc *diagram* 'main 'echo-number '(echo number)
+  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
+  'target)
+(def-arc *diagram* 'main 'main '() ; 错误通配
+  (format t "You're prolly wrong. ~%")
+  'target)
+(def-arc *diagram* 'main 'read '(read integer) ; 判断给定整数
+  (format t "The integer you gave is: ~a. ~%" (cadr cmd-list))
+ 'target)
+(def-arc *diagram* 'main 'main '(quit) ; 退出程序
+  (format t "Good bye! ~%"))
