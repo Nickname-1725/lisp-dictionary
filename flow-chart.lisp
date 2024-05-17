@@ -200,7 +200,7 @@
   (sublis (macroexpand `((,target . ,replace))) list :test #'equal))
 (defmacro local-fun-def (name func-body)
   "根据函数体和名称创建局部定义函数格式的list"
-  `(,name (&rest args) (declare (ignorable args)) ,@func-body))
+  `(,name (&optional args) (declare (ignorable args)) ,@func-body))
 (defmacro implement-fun-def (start-name fun-def-list)
   "根据局部函数列表和入口函数来构造匿名函数格式的list"
   `(lambda ()
@@ -222,7 +222,7 @@
     (mapcar #'(lambda (x)
                 (macroexpand
                  `(,(read-from-string (format nil "fun-~a" (car x))) ; 函数名
-                   (cmd-list &rest args) ; 参数列表
+                   (cmd-list args) ; 参数列表
                    (declare (ignorable cmd-list args))
                    ,@(car (cdr x))))) ; 函数体
             indexed-eval-list)))
@@ -230,27 +230,28 @@
 (defun eval-cond-def (stat)
   "输入stat，输出(let (...) (cond ...))表达"
   (let* ((reader (state-node-trans-read stat))
-         (arc-list (state-node-trans-list stat))
-         (match-lists (mapcar #'(lambda (arc) (trans-arc-match-list arc))
-                              arc-list))
-         (cond-list (mapcar #'(lambda (match)
-                                (macroexpand `(string-list-match cmd-string-list
-                                                                 ',match)))
-                            match-lists))
-         (indexed-cond-list (index-list cond-list))
-         (cond-expr (cons 'cond
-                          (mapcar
-                           #'(lambda (cond-item-indexed)
-                               (let ((index (car cond-item-indexed))
-                                     (cond-item (cadr cond-item-indexed)))
-                                 (macroexpand
-                                  `(,cond-item
-                                    (,(read-from-string (format nil "fun-~a" index))
-                                     ,cond-item args)))))
-                           indexed-cond-list)))
-         (let-expr (macroexpand `(let ((cmd-string-list (funcall ,reader)))
+         (arc-list (state-node-trans-list stat)))
+    (if (eql nil arc-list) nil
+        (let* ((match-lists (mapcar #'(lambda (arc) (trans-arc-match-list arc))
+                                    arc-list))
+               (cond-list (mapcar #'(lambda (match)
+                                      (macroexpand `(string-list-match cmd-string-list
+                                                                       ',match)))
+                                  match-lists))
+               (indexed-cond-list (index-list cond-list))
+               (cond-expr (cons 'cond
+                                (mapcar
+                                 #'(lambda (cond-item-indexed)
+                                     (let ((index (car cond-item-indexed))
+                                           (cond-item (cadr cond-item-indexed)))
+                                       (macroexpand
+                                        `(,cond-item
+                                          (,(read-from-string (format nil "fun-~a" index))
+                                           ,cond-item args)))))
+                                 indexed-cond-list)))
+               (let-expr (macroexpand `(let ((cmd-string-list (funcall ,reader)))
                                    ,cond-expr))))
-    let-expr))
+          let-expr))))
 
 (defun state-func-def (stat)
   "输入state-node，输出局部定义函数的list表达"
