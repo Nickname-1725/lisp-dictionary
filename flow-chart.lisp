@@ -1,5 +1,12 @@
-
-;;;; 本脚本模拟repl流程图
+;;; 本脚本模拟repl流程图
+(defpackage :flow-chart
+  (:use :cl)
+  (:export
+     :def-init
+     :def-state
+     :def-arc
+     :diagram-realize))
+(in-package :flow-chart)
 
 (ql:quickload :cl-ppcre)
 (defun command-read-default ()
@@ -200,7 +207,8 @@
   (sublis (macroexpand `((,target . ,replace))) list :test #'equal))
 (defmacro local-fun-def (name func-body)
   "根据函数体和名称创建局部定义函数格式的list"
-  `(,name (&optional args) (declare (ignorable args)) ,@func-body))
+  `(,name (&optional ,(read-from-string "args"))
+          ,(read-from-string "(declare (ignorable args))") ,@func-body))
 (defmacro implement-fun-def (start-name fun-def-list)
   "根据局部函数列表和入口函数来构造匿名函数格式的list"
   `(lambda ()
@@ -215,15 +223,16 @@
                               (let* ((eval (trans-arc-eval arc))
                                      (next-name (state-node-name
                                                  (trans-arc-next arc))))
-                                (replace-list eval ''target
-                                              (list next-name 'args))))
+                                (replace-list eval (read-from-string "'target")
+                                              (list next-name
+                                                    (read-from-string "args")))))
                           arc-list))
          (indexed-eval-list (index-list real-eval-list)))
     (mapcar #'(lambda (x)
                 (macroexpand
                  `(,(read-from-string (format nil "fun-~a" (car x))) ; 函数名
-                   (cmd-list args) ; 参数列表
-                   (declare (ignorable cmd-list args))
+                   ,(read-from-string "(cmd-list args)") ; 参数列表
+                   ,(read-from-string "(declare (ignorable cmd-list args))")
                    ,@(car (cdr x))))) ; 函数体
             indexed-eval-list)))
 
@@ -247,7 +256,7 @@
                                        (macroexpand
                                         `(,cond-item
                                           (,(read-from-string (format nil "fun-~a" index))
-                                           ,cond-item args)))))
+                                           ,cond-item ,(read-from-string "args"))))))
                                  indexed-cond-list)))
                (let-expr (macroexpand `(let ((cmd-string-list (funcall ,reader)))
                                    ,cond-expr))))
@@ -280,19 +289,22 @@
              (access-state ,diag ,stat-to)
              ,match-list ',body))
 
+(in-package :cl-user)
 ;;; 测试用例
-(def-init *diagram* 'main
+(flow-chart:def-init *diagram* 'main
   (format t "Hello"))
-(def-state *diagram* 'echo-number)
-(def-state *diagram* 'read)
-(def-arc *diagram* 'main 'echo-number '(echo number)
+(flow-chart:def-state *diagram* 'echo-number
+  (format t "Did you just entered ~a?" args))
+(flow-chart:def-state *diagram* 'read)
+(flow-chart:def-arc *diagram* 'main 'echo-number '(echo number)
   (format t "Hello. You're a ~a.~%" (cadr cmd-list))
-  'target)
-(def-arc *diagram* 'main 'main '() ; 错误通配
+  (let ((args (cadr cmd-list)))
+    'target))
+(flow-chart:def-arc *diagram* 'main 'main '() ; 错误通配
   (format t "You're prolly wrong. ~%")
   'target)
-(def-arc *diagram* 'main 'read '(read integer) ; 判断给定整数
+(flow-chart:def-arc *diagram* 'main 'read '(read integer) ; 判断给定整数
   (format t "The integer you gave is: ~a. ~%" (cadr cmd-list))
  'target)
-(def-arc *diagram* 'main 'main '(quit) ; 退出程序
+(flow-chart:def-arc *diagram* 'main 'main '(quit) ; 退出程序
   (format t "Good bye! ~%"))
