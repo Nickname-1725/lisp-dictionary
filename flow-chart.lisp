@@ -5,7 +5,8 @@
      :def-init
      :def-state
      :def-arc
-     :diagram-realize))
+     :diagram-realize
+     :set-state-reader))
 (in-package :flow-chart)
 
 (ql:quickload :cl-ppcre)
@@ -61,8 +62,8 @@
   ; 状态的指示
   (activity '(nil) :type list)
   ; 读取过程, 返回字符串列表
-  (trans-read #'command-read-default
-   :type compiled-function)
+  (trans-read (macroexpand `(funcall ,#'command-read-default))
+   :type list)
   (trans-list nil :type list)) ;
 (defstruct (trans-arc
             ; 必须指定next才能构造
@@ -258,7 +259,7 @@
                                           (,(read-from-string (format nil "fun-~a" index))
                                            ,cond-item ,(read-from-string "args"))))))
                                  indexed-cond-list)))
-               (let-expr (macroexpand `(let ((cmd-string-list (funcall ,reader)))
+               (let-expr (macroexpand `(let ((cmd-string-list ,reader))
                                    ,cond-expr))))
           let-expr))))
 
