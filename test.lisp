@@ -1,6 +1,8 @@
 "本脚本用于实现单词本"
 (load "trie-store.lisp")
 (load "vocabulary.lisp")
+(load "flow-chart.lisp")
+(defparameter *words-db* nil)
 
 ;;;; 数据结构的存取、管理
 (defun add-word (word) (push word *words-db*))
@@ -66,25 +68,25 @@
 
 ;;;; 用户交互功能
 
-(defun user-read ()
-  "通用解析用户输入函数"
-  (let ((cmd (read-from-string
-              (concatenate 'string "(" (read-line) ")" ))))
-    (flet ((quote-it (x)
-             (list 'quote x)))
-      (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
+;(defun user-read ()
+;  "通用解析用户输入函数"
+;  (let ((cmd (read-from-string
+;              (concatenate 'string "(" (read-line) ")" ))))
+;    (flet ((quote-it (x)
+;             (list 'quote x)))
+;      (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
 
-(defmacro user-eval* (allow-cmds)
-  "模板，生成user-eval类型的函数，输入参数为允许的命令列表及允许词数
-  allow-cmds: 应形如((command-1 3) (command-2 1))"
-  `(lambda (sexp)
-     (format t "~c[2J~c[H" #\escape #\escape)
-     (let* ((allow-cmds ,allow-cmds)
-            (find-cmd (assoc (car sexp) allow-cmds)))
-       (if (and find-cmd
-                (eq (length sexp) (cadr find-cmd)))
-           (eval sexp)
-           (format t "Not a valid command. (✿ ◕ __ ◕ )~%")))))
+;(defmacro user-eval* (allow-cmds)
+;  "模板，生成user-eval类型的函数，输入参数为允许的命令列表及允许词数
+;  allow-cmds: 应形如((command-1 3) (command-2 1))"
+;  `(lambda (sexp)
+;     (format t "~c[2J~c[H" #\escape #\escape)
+;     (let* ((allow-cmds ,allow-cmds)
+;            (find-cmd (assoc (car sexp) allow-cmds)))
+;       (if (and find-cmd
+;                (eq (length sexp) (cadr find-cmd)))
+;           (eval sexp)
+;           (format t "Not a valid command. (✿ ◕ __ ◕ )~%")))))
 
 ;;; 子repl模板
 (defun user-cmd-description (cmd-desc)
@@ -120,7 +122,6 @@
 
 ;; 主REPL命令集
 (defun note-down (spell)
-  ;(format t "~c[2J~c[H" #\escape #\escape)
   (let ((word (find-word spell)))
                                         ; 此处显示查询单词的情况
     (if word
@@ -148,16 +149,16 @@
      ("wipe :key" "to wipe off part of the speech of the target.")
      ("wipe-clean" "to wipe off the whole target clean."))
    (user-eval* '((back 1) (wipe 2) (wipe-clean 1)))))
-(defmacro look-up (spell) `(funcall look-up-call ,spell))
-(defmacro edit (spell) `(funcall edit-call ,spell))
-(defmacro erase (spell) `(funcall erase-call ,spell))
-(defun restore ()
-  (save-words)
-  (format t "Neatly done.~%")
-  (read-line))
-(defun quit-the-main-repl ()
-  (save-words) ; 自动存档
-  (format t "The dictionary closed. Goodbye. (⌐ ■ ᴗ ■ )~%"))
+;(defmacro look-up (spell) `(funcall look-up-call ,spell))
+;(defmacro edit (spell) `(funcall edit-call ,spell))
+;(defmacro erase (spell) `(funcall erase-call ,spell))
+;(defun restore ()
+;  (save-words)
+;  (format t "Neatly done.~%")
+;  (read-line))
+;(defun quit-the-main-repl ()
+;  (save-words) ; 自动存档
+;  (format t "The dictionary closed. Goodbye. (⌐ ■ ᴗ ■ )~%"))
 
 ;; 子repl命令集
 (defun change (key value)
@@ -185,8 +186,8 @@
                      (t (format t "yes or no?[y/n]~%")
                         (wipe-clean)))))))
 
-;; 主REPL
-(defun main-repl ()
+;;; 测试用例
+(flow-chart:def-init *repl-user* 'main
   (format t "The dictionary opened. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
   (user-cmd-description              ; 反馈可用命令
    '(("note-down spell" "note-down a word.")
@@ -194,23 +195,59 @@
      ("edit spell" "correct the fault.")
      ("erase spell" "give it a quick trim or eliminate it completely.")
      ("restore" "restore the data manually.")
-     ("quit" "close the dictionary. data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)")))
-              ; 执行用户命令
-  (let ((cmd (user-read)))
-    (if (eq (car cmd) 'quit)
-        (quit-the-main-repl)
-        (progn
-          (funcall (user-eval*
-                    '((note-down 2)
-                      (look-up 2)
-                      (edit 2)
-                      (erase 2)
-                      (restore 1)
-                      (quit 1))) cmd)
-          (main-repl)))))
+     ("quit" "close the dictionary. data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
+(flow-chart:def-arc *repl-user* 'main 'main '() ; 错误通配
+  (format t "~c[2J~c[H" #\escape #\escape)
+  (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
+  'target)
+(flow-chart:def-arc *repl-user* 'main 'main '(quit) ; 退出程序
+  ;(save-words) ; 自动存档
+  (format t "The dictionary closed. Goodbye. (⌐ ■ ᴗ ■ )~%"))
+
+;; note-down
+(flow-chart:def-state *repl-user* 'note-down
+  (format t "Did you just entered ~a?" args))
+(flow-chart:def-arc *repl-user* 'main 'note-down '(note-down symbol)
+  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
+  (let ((args (cadr cmd-list)))
+    'target))
+
+;; look-up
+(flow-chart:def-state *repl-user* 'look-up
+  (format t "Did you just entered ~a?" args))
+(flow-chart:def-arc *repl-user* 'main 'look-up '(look-up symbol)
+  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
+  (let ((args (cadr cmd-list)))
+    'target))
+
+;; edit
+(flow-chart:def-state *repl-user* 'edit
+  (format t "Did you just entered ~a?" args))
+(flow-chart:def-arc *repl-user* 'main 'edit '(edit symbol)
+  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
+  (let ((args (cadr cmd-list)))
+    'target))
+
+;; erase
+(flow-chart:def-state *repl-user* 'erase
+  (format t "Did you just entered ~a?" args))
+(flow-chart:def-arc *repl-user* 'main 'erase '(erase symbol)
+  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
+  (let ((args (cadr cmd-list)))
+    'target))
+
+;; store
+(flow-chart:def-state *repl-user* 'store
+  (format t "Neatly done.~%"))
+(flow-chart:def-arc *repl-user* 'main 'store '(store)
+  ;(save-words)
+  'target)
+(flow-chart:def-arc *repl-user* 'store 'main '()
+  'target)
 
 (defun init-fun ()
-  (load-words) ; 自动加载存档
-  (main-repl)
-  (sleep 0.1)(quit))
+;  (load-words) ; 自动加载存档
+  (main-repl))
+;  (sleep 0.1)
+;  (quit))
 
