@@ -72,27 +72,6 @@
   (load-db *words-db* (concatenate 'string *config-root* "dictionary-words.db")))
 
 ;;;; 用户交互功能
-
-;(defun user-read ()
-;  "通用解析用户输入函数"
-;  (let ((cmd (read-from-string
-;              (concatenate 'string "(" (read-line) ")" ))))
-;    (flet ((quote-it (x)
-;             (list 'quote x)))
-;      (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
-
-;(defmacro user-eval* (allow-cmds)
-;  "模板，生成user-eval类型的函数，输入参数为允许的命令列表及允许词数
-;  allow-cmds: 应形如((command-1 3) (command-2 1))"
-;  `(lambda (sexp)
-;     (format t "~c[2J~c[H" #\escape #\escape)
-;     (let* ((allow-cmds ,allow-cmds)
-;            (find-cmd (assoc (car sexp) allow-cmds)))
-;       (if (and find-cmd
-;                (eq (length sexp) (cadr find-cmd)))
-;           (eval sexp)
-;           (format t "Not a valid command. (✿ ◕ __ ◕ )~%")))))
-
 ;;; 子repl模板
 (defun user-cmd-description (cmd-desc)
   "依次打印命令的描述"
@@ -126,19 +105,6 @@
          (repl word)))))
 
 ;; 主REPL命令集
-(defun note-down (spell)
-  (let ((word (find-word spell)))
-                                        ; 此处显示查询单词的情况
-    (if word
-        (progn
-          (format t "*~a* has already in our database.~%" spell)
-          (read-line))
-        (progn
-          (add-word (create-word spell))
-          (format t "The target *~a* has been add to our database.~%" spell)
-          (read-line)
-          (edit spell)))))
-
 (defparameter look-up-call
   (user-repl*
    '(("back" "go back to the main menu."))
@@ -154,16 +120,6 @@
      ("wipe :key" "to wipe off part of the speech of the target.")
      ("wipe-clean" "to wipe off the whole target clean."))
    (user-eval* '((back 1) (wipe 2) (wipe-clean 1)))))
-;(defmacro look-up (spell) `(funcall look-up-call ,spell))
-;(defmacro edit (spell) `(funcall edit-call ,spell))
-;(defmacro erase (spell) `(funcall erase-call ,spell))
-;(defun restore ()
-;  (save-words)
-;  (format t "Neatly done.~%")
-;  (read-line))
-;(defun quit-the-main-repl ()
-;  (save-words) ; 自动存档
-;  (format t "The dictionary closed. Goodbye. (⌐ ■ ᴗ ■ )~%"))
 
 ;; 子repl命令集
 (defun change (key value)
@@ -211,22 +167,28 @@
 
 ;; note-down
 (flow-chart:def-state *repl-user* 'note-down
-  (format t "Did you just entered ~a?" args))
+  nil)
+(flow-chart:set-state-reader
+ *repl-user* 'note-down
+ (macroexpand `(let* ((spell args)
+                      (word (find-word spell)))
+                 (if word '("fail") '("succeed")))))
 (flow-chart:def-arc *repl-user* 'main 'note-down '(note-down symbol)
-  (let* ((spell (cadr cmd-list))
-         (word (find-word spell)))
-    ; 此处显示查询单词的情况
-    (if word
-        (progn
-          (format t "*~a* has already in our database.~%" spell)
-          (read-line))
-        (progn
-          (add-word (create-word spell))
-          (format t "The target *~a* has been add to our database.~%" spell)
-          ;(read-line)
-          ;(edit spell)
-          (let ((args spell))
-            'target)))))
+  (let ((args (cadr cmd-list))) 'target))
+(flow-chart:def-state *repl-user* 'note-down-succeed
+  (let ((spell args))
+    (format t "The target *~a* has been add to our database.~%" spell)))
+(flow-chart:def-arc *repl-user* 'note-down 'note-down-succeed '(succeed)
+  (let ((spell args))
+    (add-word (create-word spell))
+    'target))
+(flow-chart:def-state *repl-user* 'note-down-fail
+  (let ((spell args))
+    (format t "*~a* has already in our database.~%" spell)))
+(flow-chart:def-arc *repl-user* 'note-down 'note-down-fail '(fail)
+  'target)
+(flow-chart:def-arc *repl-user* 'note-down-fail 'main 'nil
+  'target)
 
 ;; look-up
 (flow-chart:def-state *repl-user* 'look-up
@@ -243,6 +205,8 @@
   (format t "Hello. You're a ~a.~%" (cadr cmd-list))
   (let ((args (cadr cmd-list)))
     'target))
+(flow-chart:def-arc *repl-user* 'note-down-succeed 'edit 'nil
+  'target)
 
 ;; erase
 (flow-chart:def-state *repl-user* 'erase
