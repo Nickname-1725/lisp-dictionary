@@ -289,22 +289,3 @@
              (access-state ,diag ,stat-to)
              ,match-list ',body))
 
-(in-package :cl-user)
-;;; 测试用例
-(flow-chart:def-init *diagram* 'main
-  (format t "Hello"))
-(flow-chart:def-state *diagram* 'echo-number
-  (format t "Did you just entered ~a?" args))
-(flow-chart:def-state *diagram* 'read)
-(flow-chart:def-arc *diagram* 'main 'echo-number '(echo number)
-  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
-  (let ((args (cadr cmd-list)))
-    'target))
-(flow-chart:def-arc *diagram* 'main 'main '() ; 错误通配
-  (format t "You're prolly wrong. ~%")
-  'target)
-(flow-chart:def-arc *diagram* 'main 'read '(read integer) ; 判断给定整数
-  (format t "The integer you gave is: ~a. ~%" (cadr cmd-list))
- 'target)
-(flow-chart:def-arc *diagram* 'main 'main '(quit) ; 退出程序
-  (format t "Good bye! ~%"))
