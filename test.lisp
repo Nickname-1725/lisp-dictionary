@@ -5,6 +5,11 @@
 (defparameter *words-db* nil)
 
 ;;;; 数据结构的存取、管理
+(defun create-word (spell)
+  (copy-list `(:spell ,spell
+               :n nil :v nil
+               :adj nil :adv nil
+               :prep nil)))
 (defun add-word (word) (push word *words-db*))
 ; 其中(add-word(create-word spell))
 ; 可以用(mark-word (add-word spell) (define-word spell))代替
@@ -208,9 +213,20 @@
 (flow-chart:def-state *repl-user* 'note-down
   (format t "Did you just entered ~a?" args))
 (flow-chart:def-arc *repl-user* 'main 'note-down '(note-down symbol)
-  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
-  (let ((args (cadr cmd-list)))
-    'target))
+  (let* ((spell (cadr cmd-list))
+         (word (find-word spell)))
+    ; 此处显示查询单词的情况
+    (if word
+        (progn
+          (format t "*~a* has already in our database.~%" spell)
+          (read-line))
+        (progn
+          (add-word (create-word spell))
+          (format t "The target *~a* has been add to our database.~%" spell)
+          ;(read-line)
+          ;(edit spell)
+          (let ((args spell))
+            'target)))))
 
 ;; look-up
 (flow-chart:def-state *repl-user* 'look-up
