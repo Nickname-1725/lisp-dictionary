@@ -78,7 +78,7 @@
   (format t "~{~{- [~a~15t]: ~a~}~%~}" cmd-desc))
 
 (defparameter *the-word* nil)
-(defmacro user-repl* (cmd-desc u-eval)
+(defmacro user-repl* (cmd-desc)
   "子repl函数生成宏"
   `(lambda (spell)
      (setf *the-word* (find-word spell))
@@ -95,31 +95,29 @@
                     ;(format t "~c[2J~c[H" #\escape #\escape)
                     (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%~%" spell)))
               ; 反馈可用命令
-              (user-cmd-description ,cmd-desc)
-              ; 执行用户命令
-              (let ((cmd (user-read)))
-                (if (eq (car cmd) 'back)
-                    (format t "~c[2J~c[H" #\escape #\escape)
-                    (progn (funcall ,u-eval cmd)
-                           (repl word))))))
+              (user-cmd-description ,cmd-desc)))
          (repl word)))))
 
 ;; 主REPL命令集
-(defparameter look-up-call
-  (user-repl*
-   '(("back" "go back to the main menu."))
-   (user-eval* '((back 1)))))
-(defparameter edit-call
+(defun look-up-func (spell)
+  (funcall
+   (user-repl*
+    '(("back" "go back to the main menu."))
+    ;(user-eval* '((back 1)))
+    ) spell))
+(defun edit
   (user-repl*
    '(("back" "go back to the main menu.")
      ("change :key new-meaning" "to change part of the speech of the target."))
-   (user-eval* '((back 1) (change 3)))))
-(defparameter erase-call
+   ;(user-eval* '((back 1) (change 3)))
+   ))
+(defun erase
   (user-repl*
    '(("back" "go back to the main menu.")
      ("wipe :key" "to wipe off part of the speech of the target.")
      ("wipe-clean" "to wipe off the whole target clean."))
-   (user-eval* '((back 1) (wipe 2) (wipe-clean 1)))))
+   ;(user-eval* '((back 1) (wipe 2) (wipe-clean 1)))
+   ))
 
 ;; 子repl命令集
 (defun change (key value)
@@ -192,11 +190,16 @@
 
 ;; look-up
 (flow-chart:def-state *repl-user* 'look-up
-  (format t "Did you just entered ~a?" args))
+  (look-up-func args))
 (flow-chart:def-arc *repl-user* 'main 'look-up '(look-up symbol)
-  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
   (let ((args (cadr cmd-list)))
     'target))
+(flow-chart:def-arc *repl-user* 'look-up 'main '(back)
+  'target)
+(flow-chart:def-arc *repl-user* 'look-up 'look-up 'nil
+  (format t "~c[2J~c[H" #\escape #\escape)
+  (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
+  'target)
 
 ;; edit
 (flow-chart:def-state *repl-user* 'edit
