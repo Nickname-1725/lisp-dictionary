@@ -112,13 +112,14 @@
       ("change :key new-meaning" "to change part of the speech of the target."))
    ;(user-eval* '((back 1) (change 3)))
     ) spell))
-(defun erase
-  (user-repl*
-   '(("back" "go back to the main menu.")
-     ("wipe :key" "to wipe off part of the speech of the target.")
-     ("wipe-clean" "to wipe off the whole target clean."))
-   ;(user-eval* '((back 1) (wipe 2) (wipe-clean 1)))
-   ))
+(defun erase-func (spell)
+  (funcall
+   (user-repl*
+    '(("back" "go back to the main menu.")
+      ("wipe :key" "to wipe off part of the speech of the target.")
+      ("wipe-clean" "to wipe off the whole target clean."))
+      ;(user-eval* '((back 1) (wipe 2) (wipe-clean 1)))
+    ) spell))
 
 ;; 子repl命令集
 (defun change-func (key value)
@@ -225,11 +226,20 @@
 
 ;; erase
 (flow-chart:def-state *repl-user* 'erase
-  (format t "Did you just entered ~a?" args))
+  (erase-func args))
 (flow-chart:def-arc *repl-user* 'main 'erase '(erase symbol)
-  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
   (let ((args (cadr cmd-list)))
     'target))
+(flow-chart:def-arc *repl-user* 'erase 'main '(back)
+  'target)
+(flow-chart:def-arc *repl-user* 'erase 'erase '(wipe symbol)
+  (let ((key (cadr cmd-list)))
+    (wipe-func key)
+    'target))
+(flow-chart:def-arc *repl-user* 'erase 'erase 'nil
+  (format t "~c[2J~c[H" #\escape #\escape)
+  (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
+  'target)
 
 ;; store
 (flow-chart:def-state *repl-user* 'store
