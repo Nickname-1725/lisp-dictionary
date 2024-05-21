@@ -77,16 +77,16 @@
   "依次打印命令的描述"
   (format t "~{~{- [~a~15t]: ~a~}~%~}" cmd-desc))
 
-(defparameter *the-word* nil)
+;(defparameter *the-word* nil)
 (defmacro user-repl* (cmd-desc)
   "子repl函数生成宏"
   `(lambda (spell)
-     (setf *the-word* (find-word spell))
-     (let ((word *the-word*))
+     ;(setf *the-word* (find-word spell))
+     (let ((word (find-word spell)))
        (labels
            ((repl (word)
               ; 此处显示查询单词的情况
-              (if *the-word*
+              (if word
                   (progn
                     ;(format t "~c[2J~c[H" #\escape #\escape)
                     (format t "The target *~a* found. (˵u_u˵)~%~%" spell)
@@ -96,7 +96,8 @@
                     (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%~%" spell)))
               ; 反馈可用命令
               (user-cmd-description ,cmd-desc)))
-         (repl word)))))
+         (repl word)
+         word))))
 
 ;; 主REPL命令集
 (defun look-up-func (spell)
@@ -122,24 +123,24 @@
     ) spell))
 
 ;; 子repl命令集
-(defun change-func (key value)
-  (set-word *the-word* key (prin1-to-string value)))
-(defun wipe-func (key)
-  (clean-class-word *the-word* key))
-(defun wipe-clean-func ()
-  (if (not *the-word*)
+(defun change-func (word key value)
+  (set-word word key (prin1-to-string value)))
+(defun wipe-func (word key)
+  (clean-class-word word key))
+(defun wipe-clean-func (word)
+  (if (not word)
       (progn
         (format t "Quite clean. Nothing to wipe off.")
         (read-line))
       (progn (format t "are you sure you want to wipe the hole target *~a* clean? (˵u_u˵)[y/n]"
-                     (getf *the-word* :spell))
+                     (getf word :spell))
              (let* ((r-l (read-line))
                     (option (read-from-string
                              (if (eq (length r-l) 0)
                                  "default" r-l))))
                (cond ((eq 'y option)
-                      (remove-word-spell (getf *the-word* :spell))
-                      (setf *the-word* nil)
+                      (remove-word-spell (getf word :spell))
+                      (setf word nil)
                       (format t "~c[2J~c[H" #\escape #\escape)
                       (format t "Neatly-done.~%")
                       (read-line))
@@ -214,8 +215,9 @@
 (flow-chart:def-arc *repl-user* 'edit 'edit '(change symbol string)
   (let ((key (cadr cmd-list))
         (value (caddr cmd-list))
+        (spell args)
         (args args))
-    (change-func key value)
+    (change-func (find-word spell) key value)
     'target))
 (flow-chart:def-arc *repl-user* 'note-down-succeed 'edit 'nil
   'target)
@@ -233,8 +235,13 @@
 (flow-chart:def-arc *repl-user* 'erase 'main '(back)
   'target)
 (flow-chart:def-arc *repl-user* 'erase 'erase '(wipe symbol)
-  (let ((key (cadr cmd-list)))
-    (wipe-func key)
+  (let ((key (cadr cmd-list))
+        (spell args))
+    (wipe-func (find-word spell) key)
+    'target))
+(flow-chart:def-arc *repl-user* 'erase 'main '(wipe-clean)
+  (let ((spell args))
+    (wipe-clean-func (find-word spell))
     'target))
 (flow-chart:def-arc *repl-user* 'erase 'erase 'nil
   (format t "~c[2J~c[H" #\escape #\escape)
