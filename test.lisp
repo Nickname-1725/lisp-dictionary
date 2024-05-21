@@ -105,12 +105,13 @@
     '(("back" "go back to the main menu."))
     ;(user-eval* '((back 1)))
     ) spell))
-(defun edit
-  (user-repl*
-   '(("back" "go back to the main menu.")
-     ("change :key new-meaning" "to change part of the speech of the target."))
+(defun edit-func (spell)
+  (funcall
+   (user-repl*
+    '(("back" "go back to the main menu.")
+      ("change :key new-meaning" "to change part of the speech of the target."))
    ;(user-eval* '((back 1) (change 3)))
-   ))
+    ) spell))
 (defun erase
   (user-repl*
    '(("back" "go back to the main menu.")
@@ -120,11 +121,11 @@
    ))
 
 ;; 子repl命令集
-(defun change (key value)
+(defun change-func (key value)
   (set-word *the-word* key (prin1-to-string value)))
-(defun wipe (key)
+(defun wipe-func (key)
   (clean-class-word *the-word* key))
-(defun wipe-clean ()
+(defun wipe-clean-func ()
   (if (not *the-word*)
       (progn
         (format t "Quite clean. Nothing to wipe off.")
@@ -203,12 +204,23 @@
 
 ;; edit
 (flow-chart:def-state *repl-user* 'edit
-  (format t "Did you just entered ~a?" args))
+  (edit-func args))
 (flow-chart:def-arc *repl-user* 'main 'edit '(edit symbol)
-  (format t "Hello. You're a ~a.~%" (cadr cmd-list))
   (let ((args (cadr cmd-list)))
     'target))
+(flow-chart:def-arc *repl-user* 'edit 'main '(back)
+  'target)
+(flow-chart:def-arc *repl-user* 'edit 'edit '(change symbol string)
+  (let ((key (cadr cmd-list))
+        (value (caddr cmd-list))
+        (args args))
+    (change-func key value)
+    'target))
 (flow-chart:def-arc *repl-user* 'note-down-succeed 'edit 'nil
+  'target)
+(flow-chart:def-arc *repl-user* 'edit 'edit 'nil
+  (format t "~c[2J~c[H" #\escape #\escape)
+  (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
 ;; erase
