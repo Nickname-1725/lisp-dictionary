@@ -153,8 +153,8 @@
      ("look-up spell" "look up the dictionary for a word.")
      ("edit spell" "correct the fault.")
      ("erase spell" "give it a quick trim or eliminate it completely.")
-     ("restore" "restore the data manually.")
-     ("quit" "close the dictionary. data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
+     ("store" "store the data manually.")
+     ("quit" "close the dictionary. data will be automatically stored by your little helper, anyway.(˵ ✿ ◕ ‿ ◕ ˵)"))))
 (flow-chart:def-arc *repl-user* 'main 'main '() ; 错误通配
   (clear-CLI-screen)
   (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
@@ -175,6 +175,7 @@
   (let ((args (cadr cmd-list))) 'target))
 (flow-chart:def-state *repl-user* 'note-down-succeed
   (let ((spell args))
+    (clear-CLI-screen)
     (format t "The target *~a* has been add to our database.~%" spell)))
 (flow-chart:def-arc *repl-user* 'note-down 'note-down-succeed '(succeed)
   (let ((spell args))
@@ -182,10 +183,12 @@
     'target))
 (flow-chart:def-state *repl-user* 'note-down-fail
   (let ((spell args))
+    (clear-CLI-screen)
     (format t "*~a* has already in our database.~%" spell)))
 (flow-chart:def-arc *repl-user* 'note-down 'note-down-fail '(fail)
   'target)
 (flow-chart:def-arc *repl-user* 'note-down-fail 'main 'nil
+  (clear-CLI-screen)
   'target)
 
 ;; look-up
@@ -195,6 +198,7 @@
   (let ((args (cadr cmd-list)))
     'target))
 (flow-chart:def-arc *repl-user* 'look-up 'main '(back)
+  (clear-CLI-screen)
   'target)
 (flow-chart:def-arc *repl-user* 'look-up 'look-up 'nil
   (clear-CLI-screen)
@@ -208,6 +212,7 @@
   (let ((args (cadr cmd-list)))
     'target))
 (flow-chart:def-arc *repl-user* 'edit 'main '(back)
+  (clear-CLI-screen)
   'target)
 (flow-chart:def-arc *repl-user* 'edit 'edit '(change symbol string)
   (let ((key (cadr cmd-list))
@@ -230,6 +235,7 @@
   (let ((args (cadr cmd-list)))
     'target))
 (flow-chart:def-arc *repl-user* 'erase 'main '(back)
+  (clear-CLI-screen)
   'target)
 (flow-chart:def-arc *repl-user* 'erase 'erase '(wipe symbol)
   (let ((key (cadr cmd-list))
@@ -239,6 +245,7 @@
 (flow-chart:def-arc *repl-user* 'erase 'main '(wipe-clean)
   (let ((spell args))
     (wipe-clean-func (find-word spell))
+    (clear-CLI-screen)
     'target))
 (flow-chart:def-arc *repl-user* 'erase 'erase 'nil
   (clear-CLI-screen)
@@ -247,11 +254,13 @@
 
 ;; store
 (flow-chart:def-state *repl-user* 'store
+  (clear-CLI-screen)
   (format t "Neatly done.~%"))
 (flow-chart:def-arc *repl-user* 'main 'store '(store)
   (save-words)
   'target)
 (flow-chart:def-arc *repl-user* 'store 'main '()
+  (clear-CLI-screen)
   'target)
 
 (defun init-fun ()
