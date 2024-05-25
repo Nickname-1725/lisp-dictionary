@@ -72,6 +72,8 @@
   (load-db *words-db* (concatenate 'string *config-root* "dictionary-words.db")))
 
 ;;;; 用户交互功能
+(defmacro clear-CLI-screen ()
+  `(format t "~c[2J~c[H" #\escape #\escape))
 ;;; 子repl模板
 (defun user-cmd-description (cmd-desc)
   "依次打印命令的描述"
@@ -86,11 +88,11 @@
               ; 此处显示查询单词的情况
               (if word
                   (progn
-                    (format t "~c[2J~c[H" #\escape #\escape)
+                    (clear-CLI-screen)
                     (format t "The target *~a* found. (˵u_u˵)~%~%" spell)
                     (display-word word))
                   (progn
-                    (format t "~c[2J~c[H" #\escape #\escape)
+                    (clear-CLI-screen)
                     (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%~%" spell)))
               ; 反馈可用命令
               (user-cmd-description ,cmd-desc)))
@@ -136,7 +138,7 @@
                (cond ((eq 'y option)
                       (remove-word-spell (getf word :spell))
                       (setf word nil)
-                      (format t "~c[2J~c[H" #\escape #\escape)
+                      (clear-CLI-screen)
                       (format t "Neatly-done.~%")
                       (read-line))
                      ((eq 'n option))
@@ -154,7 +156,7 @@
      ("restore" "restore the data manually.")
      ("quit" "close the dictionary. data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
 (flow-chart:def-arc *repl-user* 'main 'main '() ; 错误通配
-  (format t "~c[2J~c[H" #\escape #\escape)
+  (clear-CLI-screen)
   (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 (flow-chart:def-arc *repl-user* 'main 'main '(quit) ; 退出程序
@@ -195,7 +197,7 @@
 (flow-chart:def-arc *repl-user* 'look-up 'main '(back)
   'target)
 (flow-chart:def-arc *repl-user* 'look-up 'look-up 'nil
-  (format t "~c[2J~c[H" #\escape #\escape)
+  (clear-CLI-screen)
   (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
@@ -217,7 +219,7 @@
 (flow-chart:def-arc *repl-user* 'note-down-succeed 'edit 'nil
   'target)
 (flow-chart:def-arc *repl-user* 'edit 'edit 'nil
-  (format t "~c[2J~c[H" #\escape #\escape)
+  (clear-CLI-screen)
   (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
@@ -239,7 +241,7 @@
     (wipe-clean-func (find-word spell))
     'target))
 (flow-chart:def-arc *repl-user* 'erase 'erase 'nil
-  (format t "~c[2J~c[H" #\escape #\escape)
+  (clear-CLI-screen)
   (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
