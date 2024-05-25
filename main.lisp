@@ -124,26 +124,6 @@
   (set-word word key (prin1-to-string value)))
 (defun wipe-func (word key)
   (clean-class-word word key))
-(defun wipe-clean-func (word)
-  (if (not word)
-      (progn
-        (format t "Quite clean. Nothing to wipe off.")
-        (read-line))
-      (progn (format t "are you sure you want to wipe the hole target *~a* clean? (˵u_u˵)[y/n]"
-                     (getf word :spell))
-             (let* ((r-l (read-line))
-                    (option (read-from-string
-                             (if (eq (length r-l) 0)
-                                 "default" r-l))))
-               (cond ((eq 'y option)
-                      (remove-word-spell (getf word :spell))
-                      (setf word nil)
-                      (clear-CLI-screen)
-                      (format t "Neatly done.~%")
-                      (read-line))
-                     ((eq 'n option))
-                     (t (format t "yes or no?[y/n]~%")
-                        (wipe-clean-func word)))))))
 
 ;;; 测试用例
 (flow-chart:def-init *repl-user* 'main
@@ -267,7 +247,6 @@
   (let* ((spell args)
          (word (find-word spell))
          (args word))
-    ; (wipe-clean-func (find-word spell))
     (clear-CLI-screen)
     'target))
 (flow-chart:def-arc *repl-user* 'erase-confirm 'erase-confirm '() ; 默认处理
@@ -276,7 +255,6 @@
 (flow-chart:def-arc *repl-user* 'erase-confirm 'main '(y)
   (let ((word args))
     (remove-word-spell (getf word :spell))
-  ;(setf word nil)
     (clear-CLI-screen)
     (format t "Neatly-done.~%")
     (read-line)
@@ -304,6 +282,7 @@
 
 (defun init-fun ()
   (load-words) ; 自动加载存档
+  (clear-CLI-screen)
   (funcall (eval (flow-chart:diagram-realize *repl-user*)))
   ;(sleep 0.1)
   (quit))
