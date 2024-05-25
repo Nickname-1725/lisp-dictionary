@@ -127,7 +127,7 @@
 
 ;;; 测试用例
 (flow-chart:def-init *repl-user* 'main
-  (format t "The dictionary opened. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
+  (format t "The dictionary v0.3 opened. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
   (user-cmd-description              ; 反馈可用命令
    '(("note-down spell" "note-down a word.")
      ("look-up spell" "look up the dictionary for a word.")
