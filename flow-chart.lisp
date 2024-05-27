@@ -88,7 +88,7 @@
     (push start (diagram-all-states diagram))
     diagram))
 (defun diagram-to-tree (diag)
-  "用来将图结构转换为树结构"
+  "用来将图结构转换为树结构, 树的节点为(node-name node-arg-list)"
   (labels ((register-make ()
              "记录节点，若为新节点则返回t，否则返回nil"
              (let ((item-list nil))
@@ -98,8 +98,8 @@
            (handler (gra-node duplicate-p)
              "将图转化为树"
              (let ((children (state-node-trans-list gra-node))
-                   (node-name (state-node-name gra-node)))
-               ;(if children ; 判断为树
+                   (node-name (state-node-name gra-node))
+                   (node-arg-list (state-node-arg-list gra-node)))
                (let* ((leaf-p (not (funcall duplicate-p node-name)))
                       (children
                         (if leaf-p nil
@@ -114,12 +114,16 @@
                         (if leaf-p
                             (read-from-string (format nil "[~a]" node-name))
                             node-name)))
-                 (cons node-name sub-tree-list)))))
+                 (cons (cons node-name node-arg-list) sub-tree-list)))))
     (let ((duplicate-p (register-make)))
       (handler (diagram-start diag) duplicate-p))))
 (defun print-tree (tree &optional (prefix-head "") (prefix-body "") (stream t))
   "打印树结构"
-  (format  stream "~a~a~%" prefix-head (car tree))
+  (let* ((head (car tree))
+         (name (car head))
+         (arg-list (cdr head)))
+    (format  stream "~a~a ~a~%" prefix-head
+             (if (eql nil arg-list) "()" arg-list) name))
   (labels ((handle-sub-tree (sub-tree attach-head attach-body)
 	     (let ((next-prefix-head (concatenate 'string prefix-body attach-head))
 		   (next-prefix-body (concatenate 'string prefix-body attach-body))
