@@ -59,6 +59,7 @@
             (:constructor create-state-node (name activity))) 
   "状态节点"
   (name nil :type symbol)
+  (arg-list nil :type list)
   ; 状态的指示
   (activity '(nil) :type list)
   ; 读取过程, 返回字符串列表
@@ -166,6 +167,9 @@
 (defun set-state-activity (diag name activity-body)
   "设置state的activity"
   (setf (state-node-activity (access-state diag name)) activity-body))
+(defun set-state-arg-list (diag name arg-list)
+  "设置state的arg-list"
+  (setf (state-node-arg-list (access-state diag name)) arg-list))
 (defun set-state-reader (diag name reader-fun)
   "设置state的读取函数(是已经编译函数的形式)"
   (setf (state-node-trans-read (access-state diag name)) reader-fun))
@@ -281,10 +285,11 @@
 ;;; 宏的封装
 (defmacro def-init (diag start-name &rest body)
   `(defparameter ,diag (create-diagram (create-state-node ,start-name (quote ,body)))))
-(defmacro def-state (diag stat-name &rest body)
+(defmacro def-state (diag stat-name arg-list &rest body)
   `(progn
      (push-state ,diag ,stat-name)
-     (set-state-activity ,diag ,stat-name ',body)))
+     (set-state-activity ,diag ,stat-name ',body)
+     (set-state-arg-list ,diag ,stat-name ',arg-list)))
 (defmacro def-arc (diag stat-from stat-to match-list &rest body)
   `(push-arc (access-state ,diag ,stat-from)
              (access-state ,diag ,stat-to)
