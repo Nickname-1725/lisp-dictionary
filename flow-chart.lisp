@@ -210,10 +210,9 @@
 (defun replace-list (list target replace)
   "在list中查找target符号(被引用的符号)，并替换为replace列表"
   (sublis (macroexpand `((,target . ,replace))) list :test #'equal))
-(defmacro local-fun-def (name func-body)
+(defmacro local-fun-def (name arg-list func-body)
   "根据函数体和名称创建局部定义函数格式的list"
-  `(,name (&optional ,(read-from-string "args"))
-          ,(read-from-string "(declare (ignorable args))") ,@func-body))
+  `(,name ,arg-list ,@func-body))
 (defmacro implement-fun-def (start-name fun-def-list)
   "根据局部函数列表和入口函数来构造匿名函数格式的list"
   `(lambda ()
@@ -226,11 +225,12 @@
          (real-eval-list (mapcar
                           #'(lambda (arc)
                               (let* ((eval (trans-arc-eval arc))
-                                     (next-name (state-node-name
-                                                 (trans-arc-next arc))))
+                                     (next-node (trans-arc-next arc))
+                                     (next-name (state-node-name next-node))
+                                     (next-arg-list (state-node-arg-list next-node)))
                                 (replace-list eval (read-from-string "'target")
-                                              (list next-name
-                                                    (read-from-string "args")))))
+                                              (cons next-name
+                                                    next-arg-list))))
                           arc-list))
          (indexed-eval-list (index-list real-eval-list)))
     (mapcar #'(lambda (x)
@@ -270,11 +270,12 @@
 (defun state-func-def (stat)
   "输入state-node，输出局部定义函数的list表达"
   (let* ((name (state-node-name stat))
+         (arg-list (state-node-arg-list stat))
          ; 读取和跳转部分生成器
          (outro (macroexpand `(labels ,(eval-fun-def stat) ,(eval-cond-def stat))))
          (func-body (state-node-activity stat))
          (func-body (macroexpand `(,@func-body ,outro))))
-    (macroexpand `(local-fun-def ,name ,func-body))))
+    (macroexpand `(local-fun-def ,name ,arg-list ,func-body))))
 
 (defun diagram-realize (diag)
   "输入图结构，输出匿名函数"
