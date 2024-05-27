@@ -286,11 +286,13 @@
 ;;; 宏的封装
 (defmacro def-init (diag start-name &rest body)
   `(defparameter ,diag (create-diagram (create-state-node ,start-name (quote ,body)))))
-(defmacro def-state (diag stat-name arg-list &rest body)
-  `(progn
-     (push-state ,diag ,stat-name)
-     (set-state-activity ,diag ,stat-name ',body)
-     (set-state-arg-list ,diag ,stat-name ',arg-list)))
+(defmacro def-state (stat-name diag-&-arg-list &rest body)
+  (let ((diag (car diag-&-arg-list))
+        (arg-list (cdr diag-&-arg-list)))
+    `(progn
+       (push-state ,diag ',stat-name)
+       (set-state-activity ,diag ',stat-name ',body)
+       (set-state-arg-list ,diag ',stat-name ',arg-list))))
 (defmacro def-arc (diag stat-from stat-to match-list &rest body)
   `(push-arc (access-state ,diag ,stat-from)
              (access-state ,diag ,stat-to)
