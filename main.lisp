@@ -144,25 +144,23 @@
   (format t "The dictionary closed. Goodbye. (⌐ ■ ᴗ ■ )~%"))
 
 ;; note-down
-(flow-chart:def-state *repl-user* 'note-down
-  nil)
+(flow-chart:def-state note-down (*repl-user* spell))
 (flow-chart:set-state-reader
  *repl-user* 'note-down
- (macroexpand `(let* ((spell args)
+ (macroexpand `(let* (;(spell args)
                       (word (find-word spell)))
                  (if word '("fail") '("succeed")))))
 (flow-chart:def-arc *repl-user* 'main 'note-down '(note-down symbol)
-  (let ((args (cadr cmd-list))) 'target))
-(flow-chart:def-state *repl-user* 'note-down-succeed
-  (let ((spell args))
-    (clear-CLI-screen)
-    (format t "The target *~a* has been add to our database.~%" spell)))
+  (let ((spell (cadr cmd-list))) 'target))
+(flow-chart:def-state note-down-succeed (*repl-user* spell)
+  (clear-CLI-screen)
+  (format t "The target *~a* has been add to our database.~%" spell))
 (flow-chart:def-arc *repl-user* 'note-down 'note-down-succeed '(succeed)
-  (let ((spell args))
+  (let ((spell spell))
     (add-word (create-word spell))
     'target))
-(flow-chart:def-state *repl-user* 'note-down-fail
-  (let ((spell args))
+(flow-chart:def-state note-down-fail (*repl-user* spell)
+  (let ((spell spell))
     (clear-CLI-screen)
     (format t "*~a* has already in our database.~%" spell)))
 (flow-chart:def-arc *repl-user* 'note-down 'note-down-fail '(fail)
@@ -172,10 +170,10 @@
   'target)
 
 ;; look-up
-(flow-chart:def-state *repl-user* 'look-up
-  (look-up-func args))
+(flow-chart:def-state look-up (*repl-user* spell)
+  (look-up-func spell))
 (flow-chart:def-arc *repl-user* 'main 'look-up '(look-up symbol)
-  (let ((args (cadr cmd-list)))
+  (let ((spell (cadr cmd-list)))
     'target))
 (flow-chart:def-arc *repl-user* 'look-up 'main '(back)
   (clear-CLI-screen)
@@ -186,19 +184,17 @@
   'target)
 
 ;; edit
-(flow-chart:def-state *repl-user* 'edit
-  (edit-func args))
+(flow-chart:def-state edit (*repl-user* spell)
+  (edit-func spell))
 (flow-chart:def-arc *repl-user* 'main 'edit '(edit symbol)
-  (let ((args (cadr cmd-list)))
+  (let ((spell (cadr cmd-list)))
     'target))
 (flow-chart:def-arc *repl-user* 'edit 'main '(back)
   (clear-CLI-screen)
   'target)
 (flow-chart:def-arc *repl-user* 'edit 'edit '(change symbol string)
   (let ((key (cadr cmd-list))
-        (value (caddr cmd-list))
-        (spell args)
-        (args args))
+        (value (caddr cmd-list)))
     (change-func (find-word spell) key value)
     'target))
 (flow-chart:def-arc *repl-user* 'note-down-succeed 'edit 'nil
@@ -209,25 +205,24 @@
   'target)
 
 ;; erase
-(flow-chart:def-state *repl-user* 'erase
-  (erase-func args))
+(flow-chart:def-state erase (*repl-user* spell)
+  (erase-func spell))
 (flow-chart:def-arc *repl-user* 'main 'erase '(erase symbol)
-  (let ((args (cadr cmd-list)))
+  (let ((spell (cadr cmd-list)))
     'target))
 (flow-chart:def-arc *repl-user* 'erase 'main '(back)
   (clear-CLI-screen)
   'target)
 (flow-chart:def-arc *repl-user* 'erase 'erase '(wipe symbol)
-  (let ((key (cadr cmd-list))
-        (spell args))
+  (let ((key (cadr cmd-list)))
     (wipe-func (find-word spell) key)
     'target))
-(flow-chart:def-state *repl-user* 'erase-check)
+(flow-chart:def-state erase-check (*repl-user* spell))
 (flow-chart:def-arc *repl-user* 'erase 'erase-check '(wipe-clean)
   'target)
 (flow-chart:set-state-reader
  *repl-user* 'erase-check
- (macroexpand `(let* ((spell args)
+ (macroexpand `(let* (;(spell args)
                       (word (find-word spell)))
                  (if word '("succeed") '("fail")))))
 (flow-chart:def-arc *repl-user* 'erase-check 'main '(fail)
@@ -238,22 +233,21 @@
   (clear-CLI-screen)
   'target)
 
-(flow-chart:def-state *repl-user* 'erase-confirm
-  (let ((word args))
-    (format t "are you sure you want to wipe the hole target *~a* clean? (˵u_u˵)[y/n]"
-            (getf word :spell))
-    (finish-output)))
+(flow-chart:def-state erase-confirm (*repl-user* word)
+  (format t "are you sure you want to wipe the hole target *~a* clean? (˵u_u˵)[y/n]"
+          (getf word :spell))
+  (finish-output))
 (flow-chart:def-arc *repl-user* 'erase-check 'erase-confirm '(succeed)
-  (let* ((spell args)
-         (word (find-word spell))
-         (args word))
+  (let* ((spell spell)
+         (word (find-word spell)))
     (clear-CLI-screen)
     'target))
 (flow-chart:def-arc *repl-user* 'erase-confirm 'erase-confirm '() ; 默认处理
   (format t "yes or no?[y/n]~%")
   'target)
 (flow-chart:def-arc *repl-user* 'erase-confirm 'main '(y)
-  (let ((word args))
+  (let (;(word args)
+        )
     (remove-word-spell (getf word :spell))
     (clear-CLI-screen)
     (format t "Neatly-done.~%")
@@ -270,7 +264,7 @@
   'target)
 
 ;; store
-(flow-chart:def-state *repl-user* 'store
+(flow-chart:def-state store (*repl-user*)
   (clear-CLI-screen)
   (format t "Neatly done.~%"))
 (flow-chart:def-arc *repl-user* 'main 'store '(store)
