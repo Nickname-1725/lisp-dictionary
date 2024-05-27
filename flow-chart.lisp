@@ -232,8 +232,8 @@
     (mapcar #'(lambda (x)
                 (macroexpand
                  `(,(read-from-string (format nil "fun-~a" (car x))) ; 函数名
-                   ,(read-from-string "(cmd-list args)") ; 参数列表
-                   ,(read-from-string "(declare (ignorable cmd-list args))")
+                   ,(read-from-string "(cmd-list)") ; 参数列表
+                   ,(read-from-string "(declare (ignorable cmd-list))")
                    ,@(car (cdr x))))) ; 函数体
             indexed-eval-list)))
 
@@ -257,7 +257,7 @@
                                        (macroexpand
                                         `(,cond-item
                                           (,(read-from-string (format nil "fun-~a" index))
-                                           ,cond-item ,(read-from-string "args"))))))
+                                           ,cond-item)))))
                                  indexed-cond-list)))
                (let-expr (macroexpand `(let ((cmd-string-list ,reader))
                                    ,cond-expr))))
