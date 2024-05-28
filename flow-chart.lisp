@@ -291,14 +291,28 @@
 (defmacro def-init (diag start-name &rest body)
   `(defparameter ,diag (create-diagram (create-state-node ,start-name (quote ,body)))))
 (defmacro def-state (stat-name diag-&-arg-list &rest body)
+  "定义状态节点~@
+  用法: ~@
+  (flow-chart:def-state foo-state (diag (...)) 
+    (+ 1 2) ...)"
   (let ((diag (car diag-&-arg-list))
         (arg-list (cdr diag-&-arg-list)))
     `(progn
        (push-state ,diag ',stat-name)
        (set-state-activity ,diag ',stat-name ',body)
        (set-state-arg-list ,diag ',stat-name ',arg-list))))
-(defmacro def-arc (diag stat-from stat-to match-list &rest body)
-  `(push-arc (access-state ,diag ,stat-from)
-             (access-state ,diag ,stat-to)
-             ,match-list ',body))
+(defmacro def-arc (|diag|-&-|stat-from-to|-&-|match-list| &rest body)
+  "定义状态转移边~@
+  用法: ~@
+  (flow-chart:def-arc (diag (stat-from stat-to) (cmd-foo number symbol ...))~@
+    (let (...) ~@
+      ... 'target))"
+  (let* ((diag (car |diag|-&-|stat-from-to|-&-|match-list|))
+         (stat-from-to (cadr |diag|-&-|stat-from-to|-&-|match-list|))
+         (match-list (caddr |diag|-&-|stat-from-to|-&-|match-list|))
+         (stat-from (car stat-from-to))
+         (stat-to (cadr stat-from-to)))
+    `(push-arc (access-state ,diag ',stat-from)
+               (access-state ,diag ',stat-to)
+               ',match-list ',body)))
 
