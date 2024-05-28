@@ -122,7 +122,7 @@
   (let* ((head (car tree))
          (name (car head))
          (arg-list (cdr head)))
-    (format  stream "~a~a ~a~%" prefix-head
+    (format  stream "~a~a ── ~a~%" prefix-head
              (if (eql nil arg-list) "()" arg-list) name))
   (labels ((handle-sub-tree (sub-tree attach-head attach-body)
 	     (let ((next-prefix-head (concatenate 'string prefix-body attach-head))
