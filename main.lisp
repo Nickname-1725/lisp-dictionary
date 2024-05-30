@@ -103,14 +103,16 @@
 (defun look-up-func (spell)
   (funcall
    (user-repl*
-    '(("back" "go back to the main menu."))
+    '(("edit" "correct the fault.")
+      ("back" "go back to the main menu."))
     ) spell))
-(defun edit-func (spell)
-  (funcall
-   (user-repl*
-    '(("back" "go back to the main menu.")
-      ("change :key new-meaning" "to change part of the speech of the target."))
-    ) spell))
+(defun edit-func (word)
+  (clear-CLI-screen)
+  ;(format t "The target *~a* found. (˵u_u˵)~%~%" spell)
+  (display-word word)
+  (user-cmd-description
+   '(("back" "go back to the main menu.")
+     ("change :key new-meaning" "to change part of the speech of the target."))))
 (defun erase-func (spell)
   (funcall
    (user-repl*
@@ -131,7 +133,6 @@
   (user-cmd-description              ; 反馈可用命令
    '(("note-down spell" "note-down a word.")
      ("look-up spell" "look up the dictionary for a word.")
-     ("edit spell" "correct the fault.")
      ("erase spell" "give it a quick trim or eliminate it completely.")
      ("store" "store the data manually.")
      ("quit" "close the dictionary. data will be automatically stored by your little helper, anyway.(˵ ✿ ◕ ‿ ◕ ˵)"))))
@@ -184,10 +185,10 @@
   'target)
 
 ;; edit
-(flow-chart:def-state edit (*repl-user* spell)
-  (edit-func spell))
-(flow-chart:def-arc (*repl-user* (main edit) (edit symbol))
-  (let ((spell (cadr cmd-list)))
+(flow-chart:def-state edit (*repl-user* word)
+  (edit-func word))
+(flow-chart:def-arc (*repl-user* (look-up edit) (edit))
+  (let ((word (find-word spell)))
     'target))
 (flow-chart:def-arc (*repl-user* (edit main) (back))
   (clear-CLI-screen)
@@ -195,10 +196,11 @@
 (flow-chart:def-arc (*repl-user* (edit edit) (change symbol string))
   (let ((key (cadr cmd-list))
         (value (caddr cmd-list)))
-    (change-func (find-word spell) key value)
+    (change-func word key value)
     'target))
 (flow-chart:def-arc (*repl-user* (note-down-succeed edit) ())
-  'target)
+  (let ((word (find-word spell)))
+    'target))
 (flow-chart:def-arc (*repl-user* (edit edit) ())
   (clear-CLI-screen)
   (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
