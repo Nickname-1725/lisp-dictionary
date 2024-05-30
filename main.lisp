@@ -104,6 +104,7 @@
   (funcall
    (user-repl*
     '(("edit" "correct the fault.")
+      ("erase" "give it a quick trim or eliminate it completely.")
       ("back" "go back to the main menu."))
     ) spell))
 (defun edit-func (word)
@@ -113,13 +114,13 @@
   (user-cmd-description
    '(("back" "go back to the main menu.")
      ("change :key new-meaning" "to change part of the speech of the target."))))
-(defun erase-func (spell)
-  (funcall
-   (user-repl*
-    '(("back" "go back to the main menu.")
-      ("wipe :key" "to wipe off part of the speech of the target.")
-      ("wipe-clean" "to wipe off the whole target clean."))
-    ) spell))
+(defun erase-func (word)
+  (clear-CLI-screen)
+  (display-word word)
+  (user-cmd-description
+   '(("back" "go back to the main menu.")
+     ("wipe :key" "to wipe off part of the speech of the target.")
+     ("wipe-clean" "to wipe off the whole target clean."))))
 
 ;; 子repl命令集
 (defun change-func (word key value)
@@ -133,7 +134,6 @@
   (user-cmd-description              ; 反馈可用命令
    '(("note-down spell" "note-down a word.")
      ("look-up spell" "look up the dictionary for a word.")
-     ("erase spell" "give it a quick trim or eliminate it completely.")
      ("store" "store the data manually.")
      ("quit" "close the dictionary. data will be automatically stored by your little helper, anyway.(˵ ✿ ◕ ‿ ◕ ˵)"))))
 (flow-chart:def-arc (*repl-user* (main main) ()) ; 错误通配
@@ -207,43 +207,40 @@
   'target)
 
 ;; erase
-(flow-chart:def-state erase (*repl-user* spell)
-  (erase-func spell))
-(flow-chart:def-arc (*repl-user* (main erase) (erase symbol))
-  (let ((spell (cadr cmd-list)))
+(flow-chart:def-state erase (*repl-user* word)
+  (erase-func word))
+(flow-chart:def-arc (*repl-user* (look-up erase) (erase))
+  (let ((word (find-word spell)))
     'target))
 (flow-chart:def-arc (*repl-user* (erase main) (back))
   (clear-CLI-screen)
   'target)
 (flow-chart:def-arc (*repl-user* (erase erase) (wipe symbol))
   (let ((key (cadr cmd-list)))
-    (wipe-func (find-word spell) key)
+    (wipe-func word key)
     'target))
-(flow-chart:def-state erase-check (*repl-user* spell))
-(flow-chart:def-arc (*repl-user* (erase erase-check) (wipe-clean))
-  'target)
-(flow-chart:set-state-reader
- *repl-user* 'erase-check
- (macroexpand `(let* (;(spell args)
-                      (word (find-word spell)))
-                 (if word '("succeed") '("fail")))))
-(flow-chart:def-arc (*repl-user* (erase-check main) (fail))
-  (clear-CLI-screen)
-  (format t "Quite clean. Nothing to wipe off.")
-  (finish-output)
-  (read-line)
-  (clear-CLI-screen)
-  'target)
+;(flow-chart:def-state erase-check (*repl-user* word))
+;(flow-chart:def-arc (*repl-user* (erase erase-check) (wipe-clean))
+;  'target)
+;(flow-chart:set-state-reader
+; *repl-user* 'erase-check
+; (macroexpand `(let* (word (find-word spell)) ; 可以用在look-up里面 
+;                 (if word '("succeed") '("fail")))))
+;(flow-chart:def-arc (*repl-user* (erase-check main) (fail))
+;  (clear-CLI-screen)
+;  (format t "Quite clean. Nothing to wipe off.")
+;  (finish-output)
+;  (read-line)
+;  (clear-CLI-screen)
+;  'target)
 
 (flow-chart:def-state erase-confirm (*repl-user* word)
   (format t "are you sure you want to wipe the hole target *~a* clean? (˵u_u˵)[y/n]"
           (getf word :spell))
   (finish-output))
-(flow-chart:def-arc (*repl-user* (erase-check erase-confirm) (succeed))
-  (let* ((spell spell)
-         (word (find-word spell)))
-    (clear-CLI-screen)
-    'target))
+(flow-chart:def-arc (*repl-user* (erase erase-confirm) (wipe-clean))
+  (clear-CLI-screen)
+  'target)
 (flow-chart:def-arc (*repl-user* (erase-confirm erase-confirm) ()) ; 默认处理
   (format t "yes or no?[y/n]~%")
   'target)
