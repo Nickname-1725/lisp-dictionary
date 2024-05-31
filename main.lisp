@@ -79,34 +79,35 @@
   "依次打印命令的描述"
   (format t "~{~{- [~a~15t]: ~a~}~%~}" cmd-desc))
 
-(defmacro user-repl* (cmd-desc)
-  "子repl函数生成宏"
-  `(lambda (spell)
-     (let ((word (find-word spell)))
-       (labels
-           ((repl (word)
-              ; 此处显示查询单词的情况
-              (if word
-                  (progn
-                    (clear-CLI-screen)
-                    (format t "The target *~a* found. (˵u_u˵)~%~%" spell)
-                    (display-word word))
-                  (progn
-                    (clear-CLI-screen)
-                    (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%~%" spell)))
-              ; 反馈可用命令
-              (user-cmd-description ,cmd-desc)))
-         (repl word)
-         word))))
+;(defmacro user-repl* (cmd-desc)
+;  "子repl函数生成宏"
+;  `(lambda (spell)
+;     (let ((word (find-word spell)))
+;       (labels
+;           ((repl (word)
+;              ; 此处显示查询单词的情况
+;              (if word
+;                  (progn
+;                    (clear-CLI-screen)
+;                    (format t "The target *~a* found. (˵u_u˵)~%~%" spell)
+;                    (display-word word))
+;                  (progn
+;                    (clear-CLI-screen)
+;                    (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%~%" spell);))
+;              ; 反馈可用命令
+;              (user-cmd-description ,cmd-desc)))
+;         (repl word)
+;         word))))
 
 ;; 主REPL命令集
 (defun look-up-func (spell)
-  (funcall
-   (user-repl*
-    '(("edit" "correct the fault.")
-      ("erase" "give it a quick trim or eliminate it completely.")
-      ("back" "go back to the main menu."))
-    ) spell))
+  (clear-CLI-screen)
+  (format t "The target *~a* found. (˵u_u˵)~%~%" spell)
+  (display-word (find-word spell))
+  (user-cmd-description
+   '(("edit" "correct the fault.")
+     ("erase" "give it a quick trim or eliminate it completely.")
+     ("back" "go back to the main menu."))))
 (defun edit-func (word)
   (clear-CLI-screen)
   ;(format t "The target *~a* found. (˵u_u˵)~%~%" spell)
@@ -148,8 +149,7 @@
 (flow-chart:def-state note-down (*repl-user* spell))
 (flow-chart:set-state-reader
  *repl-user* 'note-down
- (macroexpand `(let* (;(spell args)
-                      (word (find-word spell)))
+ (macroexpand `(let ((word (find-word spell)))
                  (if word '("fail") '("succeed")))))
 (flow-chart:def-arc (*repl-user* (main note-down) (note-down symbol))
   (let ((spell (cadr cmd-list))) 'target))
@@ -171,23 +171,49 @@
   'target)
 
 ;; look-up
-(flow-chart:def-state look-up (*repl-user* spell)
-  (look-up-func spell))
+(flow-chart:def-state look-up (*repl-user* spell))
 (flow-chart:def-arc (*repl-user* (main look-up) (look-up symbol))
   (let ((spell (cadr cmd-list)))
     'target))
-(flow-chart:def-arc (*repl-user* (look-up main) (back))
+
+(flow-chart:set-state-reader
+ *repl-user* 'look-up
+ (macroexpand `(let ((word (find-word spell)))
+                 (if word '("succeed") '("fail")))))
+(flow-chart:def-state look-up-succeed (*repl-user* spell))
+(flow-chart:def-arc (*repl-user* (look-up look-up-succeed) (succeed))
+  (look-up-func spell)
+  'target)
+
+(flow-chart:def-arc (*repl-user* (look-up-succeed main) (back))
   (clear-CLI-screen)
   'target)
-(flow-chart:def-arc (*repl-user* (look-up look-up) ())
+(flow-chart:def-arc (*repl-user* (look-up-succeed look-up-succeed) ())
   (clear-CLI-screen)
   (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
+  'target)
+
+(flow-chart:def-state look-up-fail (*repl-user* spell)
+  (clear-CLI-screen)
+  (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%" spell)
+  (user-cmd-description
+   '(("note-down" "note-down the word.")
+     ("back" "go back to the main menu."))))
+(flow-chart:def-arc (*repl-user* (look-up look-up-fail) (fail))
+  'target)
+(flow-chart:def-arc (*repl-user* (look-up-fail note-down) (note-down))
+  (clear-CLI-screen)
+  'target)
+(flow-chart:def-arc (*repl-user* (look-up-fail main) (back))
+  (clear-CLI-screen)
+  'target)
+(flow-chart:def-arc (*repl-user* (look-up-fail look-up-fail) ())
   'target)
 
 ;; edit
 (flow-chart:def-state edit (*repl-user* word)
   (edit-func word))
-(flow-chart:def-arc (*repl-user* (look-up edit) (edit))
+(flow-chart:def-arc (*repl-user* (look-up-succeed edit) (edit))
   (let ((word (find-word spell)))
     'target))
 (flow-chart:def-arc (*repl-user* (edit main) (back))
@@ -209,7 +235,7 @@
 ;; erase
 (flow-chart:def-state erase (*repl-user* word)
   (erase-func word))
-(flow-chart:def-arc (*repl-user* (look-up erase) (erase))
+(flow-chart:def-arc (*repl-user* (look-up-succeed erase) (erase))
   (let ((word (find-word spell)))
     'target))
 (flow-chart:def-arc (*repl-user* (erase main) (back))
