@@ -97,10 +97,14 @@
                      (progn (push item item-list) t)))))
            (handler (gra-node duplicate-p)
              "将图转化为树"
-             (let ((children (state-node-trans-list gra-node))
-                   (node-name (state-node-name gra-node))
-                   (node-arg-list (state-node-arg-list gra-node)))
-               (let* ((leaf-p (not (funcall duplicate-p node-name)))
+             (let* ((node-name (state-node-name gra-node))
+                    (leaf-p (not (funcall duplicate-p node-name)))
+                    (node-name
+                      (if leaf-p
+                          (read-from-string (format nil "[~a]" node-name))
+                          node-name))
+                    (node-arg-list (state-node-arg-list gra-node)))
+               (let* ((children (state-node-trans-list gra-node))
                       (children
                         (if leaf-p nil
                             (mapcar #'(lambda (arc) (trans-arc-next arc))
@@ -109,12 +113,8 @@
                       (sub-tree-list
                         (mapcar #'(lambda (stat-node)
                                     (handler stat-node duplicate-p))
-                                children))
-                      (node-name
-                        (if leaf-p
-                            (read-from-string (format nil "[~a]" node-name))
-                            node-name)))
-                 (cons (cons node-name node-arg-list) sub-tree-list)))))
+                                children)))
+                 (macroexpand `((,node-name ,@node-arg-list) ,@sub-tree-list))))))
     (let ((duplicate-p (register-make)))
       (handler (diagram-start diag) duplicate-p))))
 (defun print-tree (tree &optional (prefix-head "") (prefix-body "") (stream t))
