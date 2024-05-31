@@ -74,32 +74,12 @@
 ;;;; 用户交互功能
 (defmacro clear-CLI-screen ()
   `(format t "~c[2J~c[H" #\escape #\escape))
-;;; 子repl模板
+;;; 用户功能的封装
 (defun user-cmd-description (cmd-desc)
   "依次打印命令的描述"
   (format t "~{~{- [~a~15t]: ~a~}~%~}" cmd-desc))
 
-;(defmacro user-repl* (cmd-desc)
-;  "子repl函数生成宏"
-;  `(lambda (spell)
-;     (let ((word (find-word spell)))
-;       (labels
-;           ((repl (word)
-;              ; 此处显示查询单词的情况
-;              (if word
-;                  (progn
-;                    (clear-CLI-screen)
-;                    (format t "The target *~a* found. (˵u_u˵)~%~%" spell)
-;                    (display-word word))
-;                  (progn
-;                    (clear-CLI-screen)
-;                    (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%~%" spell);))
-;              ; 反馈可用命令
-;              (user-cmd-description ,cmd-desc)))
-;         (repl word)
-;         word))))
-
-;; 主REPL命令集
+;; 主要功能封装
 (defun look-up-func (spell)
   (clear-CLI-screen)
   (format t "The target *~a* found. (˵u_u˵)~%~%" spell)
@@ -110,7 +90,6 @@
      ("back" "go back to the main menu."))))
 (defun edit-func (word)
   (clear-CLI-screen)
-  ;(format t "The target *~a* found. (˵u_u˵)~%~%" spell)
   (display-word word)
   (user-cmd-description
    '(("back" "go back to the main menu.")
@@ -123,13 +102,13 @@
      ("wipe :key" "to wipe off part of the speech of the target.")
      ("wipe-clean" "to wipe off the whole target clean."))))
 
-;; 子repl命令集
+;; 简易功能封装
 (defun change-func (word key value)
   (set-word word key (prin1-to-string value)))
 (defun wipe-func (word key)
   (clean-class-word word key))
 
-;;; 测试用例
+;;; CLI构造部分
 (flow-chart:def-init *repl-user* 'main
   (format t "The dictionary v0.3 opened. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
   (user-cmd-description              ; 反馈可用命令
@@ -157,13 +136,11 @@
   (clear-CLI-screen)
   (format t "The target *~a* has been add to our database.~%" spell))
 (flow-chart:def-arc (*repl-user* (note-down note-down-succeed) (succeed))
-  (let ((spell spell))
-    (add-word (create-word spell))
-    'target))
+  (add-word (create-word spell))
+  'target)
 (flow-chart:def-state note-down-fail (*repl-user* spell)
-  (let ((spell spell))
-    (clear-CLI-screen)
-    (format t "*~a* has already in our database.~%" spell)))
+  (clear-CLI-screen)
+  (format t "*~a* has already been in our database.~%" spell))
 (flow-chart:def-arc (*repl-user* (note-down note-down-fail) (fail))
   'target)
 (flow-chart:def-arc (*repl-user* (note-down-fail main) ())
@@ -245,20 +222,6 @@
   (let ((key (cadr cmd-list)))
     (wipe-func word key)
     'target))
-;(flow-chart:def-state erase-check (*repl-user* word))
-;(flow-chart:def-arc (*repl-user* (erase erase-check) (wipe-clean))
-;  'target)
-;(flow-chart:set-state-reader
-; *repl-user* 'erase-check
-; (macroexpand `(let* (word (find-word spell)) ; 可以用在look-up里面 
-;                 (if word '("succeed") '("fail")))))
-;(flow-chart:def-arc (*repl-user* (erase-check main) (fail))
-;  (clear-CLI-screen)
-;  (format t "Quite clean. Nothing to wipe off.")
-;  (finish-output)
-;  (read-line)
-;  (clear-CLI-screen)
-;  'target)
 
 (flow-chart:def-state erase-confirm (*repl-user* word)
   (format t "are you sure you want to wipe the hole target *~a* clean? (˵u_u˵)[y/n]"
