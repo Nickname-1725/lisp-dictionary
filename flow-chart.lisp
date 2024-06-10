@@ -117,6 +117,46 @@
                  (macroexpand `((,node-name ,@node-arg-list) ,@sub-tree-list))))))
     (let ((duplicate-p (register-make)))
       (handler (diagram-start diag) duplicate-p))))
+
+(defun wrap (stat)
+  "给定stat状态节点, 将其包裹为(name arg-list)形式"
+  `(,(state-node-name stat) ,@(state-node-arg-list stat)))
+(defun ill-wrap (stat)
+  `(,(read-from-string (format nil "[~a]" (state-node-name stat)))
+    ,@(state-node-arg-list stat)))
+
+(defun BFS (r queue not-used)
+  "从图中梳理出节点的连接关系~@
+  queue是当前队列, r是积累的列表结果, not-used是未被访问的节点"
+  (if (null queue) (reverse r)
+      (let* ((arc-list (state-node-trans-list (car queue)))
+             (new-vertexes (mapcar #'trans-arc-next arc-list))
+             (new-vertexes-name
+               (mapcar #'(lambda (item)
+                           (if (member item not-used) (wrap item) (ill-wrap item)))
+                       new-vertexes))
+             (new-vertexes-filted
+               (remove-if-not #'(lambda (v) (member v not-used)) new-vertexes))
+             (pair-list
+               (mapcar #'(lambda (v) (list (wrap (car queue)) v)) new-vertexes-name))
+             (not-used
+               (remove-if #'(lambda (v) (member v new-vertexes-filted)) not-used)))
+        (BFS (append (reverse pair-list) r)
+             (append new-vertexes-filted (cdr queue))
+             not-used))))
+(defun build-tree (vertex arcs)
+  "由节点的连接关系重建树"
+  (let* ((arc-list (remove-if-not #'(lambda (x) (equal (car x) vertex)) arcs))
+         (children (mapcar #'cadr arc-list))
+         (sub-tree (mapcar #'(lambda (v) (build-tree v arcs)) children)))
+    (if (null children) (list vertex) (cons vertex sub-tree))))
+(defun diagram-to-tree* (diag)
+  "用来将图结构转换为树结构, 树的节点为(node-name node-arg-list)；使用广度优先遍历"
+  (let* ((start (diagram-start diag))
+         (not-used (remove start (diagram-all-states diag)))
+         (bfs-arcs (remove-duplicates (BFS nil (list start) not-used) :test #'equal)))
+    (build-tree (wrap start) bfs-arcs))))
+
 (defun print-tree (tree &optional (prefix-head "") (prefix-body "") (stream t))
   "打印树结构"
   (let* ((head (car tree))
@@ -144,7 +184,7 @@
 (defmethod print-object ((diag diagram) stream)
   "用来打印diagram结构体的描述"
   (format stream "#S(diagram):~%")
-  (print-tree (diagram-to-tree diag) "" "" stream))
+  (print-tree (diagram-to-tree* diag) "" "" stream))
 
 ;;; 图节点操作
 (defun access-state (diag name)
