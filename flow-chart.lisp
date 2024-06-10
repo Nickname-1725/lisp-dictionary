@@ -87,36 +87,6 @@
   (let ((diagram (make-diagram start)))
     (push start (diagram-all-states diagram))
     diagram))
-(defun diagram-to-tree (diag)
-  "用来将图结构转换为树结构, 树的节点为(node-name node-arg-list)"
-  (labels ((register-make ()
-             "记录节点，若为新节点则返回t，否则返回nil"
-             (let ((item-list nil))
-               (lambda (item)
-                 (if (find item item-list) nil
-                     (progn (push item item-list) t)))))
-           (handler (gra-node duplicate-p)
-             "将图转化为树"
-             (let* ((node-name (state-node-name gra-node))
-                    (leaf-p (not (funcall duplicate-p node-name)))
-                    (node-name
-                      (if leaf-p
-                          (read-from-string (format nil "[~a]" node-name))
-                          node-name))
-                    (node-arg-list (state-node-arg-list gra-node)))
-               (let* ((children (state-node-trans-list gra-node))
-                      (children
-                        (if leaf-p nil
-                            (mapcar #'(lambda (arc) (trans-arc-next arc))
-                                    children)))
-                      (children (remove-duplicates children))
-                      (sub-tree-list
-                        (mapcar #'(lambda (stat-node)
-                                    (handler stat-node duplicate-p))
-                                children)))
-                 (macroexpand `((,node-name ,@node-arg-list) ,@sub-tree-list))))))
-    (let ((duplicate-p (register-make)))
-      (handler (diagram-start diag) duplicate-p))))
 
 (defun wrap (stat)
   "给定stat状态节点, 将其包裹为(name arg-list)形式"
@@ -150,12 +120,12 @@
          (children (mapcar #'cadr arc-list))
          (sub-tree (mapcar #'(lambda (v) (build-tree v arcs)) children)))
     (if (null children) (list vertex) (cons vertex sub-tree))))
-(defun diagram-to-tree* (diag)
+(defun diagram-to-tree (diag)
   "用来将图结构转换为树结构, 树的节点为(node-name node-arg-list)；使用广度优先遍历"
   (let* ((start (diagram-start diag))
          (not-used (remove start (diagram-all-states diag)))
          (bfs-arcs (remove-duplicates (BFS nil (list start) not-used) :test #'equal)))
-    (build-tree (wrap start) bfs-arcs))))
+    (build-tree (wrap start) bfs-arcs)))
 
 (defun print-tree (tree &optional (prefix-head "") (prefix-body "") (stream t))
   "打印树结构"
@@ -184,7 +154,7 @@
 (defmethod print-object ((diag diagram) stream)
   "用来打印diagram结构体的描述"
   (format stream "#S(diagram):~%")
-  (print-tree (diagram-to-tree* diag) "" "" stream))
+  (print-tree (diagram-to-tree diag) "" "" stream))
 
 ;;; 图节点操作
 (defun access-state (diag name)
