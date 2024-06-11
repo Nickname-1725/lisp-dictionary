@@ -157,17 +157,17 @@
  *repl-user* 'look-up
  (macroexpand `(let ((word (find-word spell)))
                  (if word '("succeed") '("fail")))))
-(flow-chart:def-state look-up-succeed (*repl-user* spell))
+(flow-chart:def-state look-up-succeed (*repl-user* spell)
+  (look-up-func spell))
 (flow-chart:def-arc (*repl-user* (look-up look-up-succeed) (succeed))
-  (look-up-func spell)
   'target)
 
 (flow-chart:def-arc (*repl-user* (look-up-succeed main) (back))
   (clear-CLI-screen)
   'target)
 (flow-chart:def-arc (*repl-user* (look-up-succeed look-up-succeed) ())
-  (clear-CLI-screen)
-  (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
+  ;(clear-CLI-screen)
+  ;(format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
 (flow-chart:def-state look-up-fail (*repl-user* spell)
@@ -205,8 +205,8 @@
   (let ((word (find-word spell)))
     'target))
 (flow-chart:def-arc (*repl-user* (edit edit) ())
-  (clear-CLI-screen)
-  (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
+  ;(clear-CLI-screen)
+  ;(format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
 ;; erase
@@ -245,8 +245,8 @@
   'target)
 
 (flow-chart:def-arc (*repl-user* (erase erase) ())
-  (clear-CLI-screen)
-  (format t "Not a valid command. (✿ ◕ __ ◕ )~%")
+  ;(clear-CLI-screen)
+  ;(format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
 ;; store
