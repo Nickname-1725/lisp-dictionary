@@ -16,10 +16,12 @@
   (children nil :type list)
   (id -1 :type number))
 (defstruct (trie-arc
-            (:constructor make-trie-arc nil)
+            (:constructor make-trie-arc (char node))
             (:constructor trie-arc-with-char (char)))
   (char #\* :type standard-char)
   (node (make-trie-node) :type trie-node))
+
+;;; 序列化与反序列化
 (defmethod serialize ((node trie-node) &optional (arc-handler nil))
   "trie-node的序列化方法"
   (when (eql nil node) nil)
@@ -35,13 +37,37 @@
     `(:char ,char :node ,(if (eql nil node-handler) node
                              (funcall node-handler node #'serialize)))))
 
+(defun serialize-trie (trie-root)
+  "trie的序列化, 输入的是树的根节点, 仍为trie-node"
+  (serialize trie-root #'serialize))
+(defun deserialze-trie-node (list-input &optional (arc-handler nil))
+  "trie-node的反序列化方法"
+  (when (eql nil list-input) nil)
+  (let* ((id (getf list-input :id))
+         (children (getf list-input :children))
+         (arc-list (if (eql nil arc-handler) children
+                       (mapcar #'(lambda (arc)
+                                   (funcall arc-handler arc #'deserialze-trie-node))
+                               children)))
+         (tr-node (make-trie-node :children arc-list :id id)))
+    tr-node))
+(defun deserialize-trie-arc (list-input &optional (node-handler nil))
+  "tire-arc的反序列化方法"
+  (when (eql nil list-input) nil)
+  (let* ((char (getf list-input :char))
+         (node (getf list-input :node))
+         (node (if (eql nil node-handler) node
+                   (funcall node-handler node #'deserialize-trie-arc)))
+         (tr-arc (make-trie-arc char node)))
+    tr-arc))
+(defun deserialize-trie (trie-list)
+  "trie的反序列化, 输入的是列表, 输入树的根节点"
+  (deserialze-trie-node trie-list #'deserialize-trie-arc))
+
 (defun trie-access-arc (tr-node char)
   "根据字符获取trie的arc"
   (find char (trie-node-children tr-node) :test
         (lambda (char arc) (eq char (trie-arc-char arc)))))
-(defun serialize-trie (trie-root)
-  "trie的序列化, 输入的是树的根节点, 仍为trie-node"
-  (serialize trie-root #'serialize))
 (defun trie-append-arc (tr-node char)
   "根据字符添加trie的arc，返回叶子节点的node"
   (let ((arc-find (trie-access-arc tr-node char)))
