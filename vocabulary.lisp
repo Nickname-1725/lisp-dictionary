@@ -22,6 +22,47 @@
   (prep nil :type list))
 
 (defparameter *vocabulary-table* (make-hash-table))
+
+;;; 序列化方法
+(defmethod serialize ((table hash-table) &optional (word-handler nil))
+  "hash-table的序列化方法"
+  (let ((serial nil))
+    (maphash #'(lambda (id word)
+                 (push `(:id ,id :word ,(if (eql nil word-handler) word
+                                            (funcall word-handler word)))
+                       serial))
+             table)
+    serial))
+(defmethod serialize ((word vocabulary-word) &optional (unused-handler nil))
+  "vocabulary-word的序列化方法"
+  (declare (ignore unused-handler))
+  (with-slots (spell id n v adj adv prep) word
+    `(:spell ,spell :id ,id :n ,n :v ,v :adj ,adj :adv ,adv :prep ,prep)))
+(defun serialize-voc-table (voc-table)
+  "词汇表的序列化方法"
+  (serialize voc-table #'serialize))
+(defun deserialize-hashtable (input-list &optional (word-handler nil))
+  "hash-table的反序列化方法"
+  (let ((table (make-hash-table)))
+    (mapcar
+     #'(lambda (item)
+         (let* ((id (getf item :id))
+                (word (getf item :word))
+                (word (if (eql nil word-handler) word (funcall word-handler word))))
+           (setf (gethash id table) word)))
+     input-list)
+    table))
+(defun deserialize-word (input-list)
+  "vocabulary-word的反序列化方法"
+  (let ((spell (getf input-list :spell)) (id (getf input-list :id))
+        (n (getf input-list :n)) (v (getf input-list :v)) (adj (getf input-list :adj))
+        (adv (getf input-list :adv)) (prep (getf input-list :prep)))
+    (make-vocabulary-word :spell spell :id id :n n :v v :adj adj :adv adv :prep prep)))
+(defun deserialize-voc-table (input-list)
+  "词汇表的反序列化方法"
+  (deserialize-hashtable input-list #'deserialize-word))
+
+;;; 词汇表操作
 (defun generate-id (length)
   (random (ash 2 (1- (* 4 length)))))
 (defun add-vocabulary (voc-table spell)
