@@ -20,11 +20,28 @@
             (:constructor trie-arc-with-char (char)))
   (char #\* :type standard-char)
   (node (make-trie-node) :type trie-node))
+(defmethod serialize ((node trie-node) &optional (arc-handler nil))
+  "trie-node的序列化方法"
+  (when (eql nil node) nil)
+  (with-slots (children id) node
+    `(:children ,(if (eql nil arc-handler) children
+                     (mapcar #'(lambda (arc)
+                                (funcall arc-handler arc #'serialize))
+                             children))
+      :id ,id)))
+(defmethod serialize ((arc trie-arc) &optional (node-handler nil))
+  "trie-arc的序列化方法"
+  (with-slots (char node) arc
+    `(:char ,char :node ,(if (eql nil node-handler) node
+                             (funcall node-handler node #'serialize)))))
 
 (defun trie-access-arc (tr-node char)
   "根据字符获取trie的arc"
   (find char (trie-node-children tr-node) :test
         (lambda (char arc) (eq char (trie-arc-char arc)))))
+(defun serialize-trie (trie-root)
+  "trie的序列化, 输入的是树的根节点, 仍为trie-node"
+  (serialize trie-root #'serialize))
 (defun trie-append-arc (tr-node char)
   "根据字符添加trie的arc，返回叶子节点的node"
   (let ((arc-find (trie-access-arc tr-node char)))
@@ -85,6 +102,7 @@
          (reversed-parent-list (cdr (reverse (cons tr-node node-list)))))
     (mapcar #'trie-remove-arc reversed-parent-list reversed-char-list)))
 
+;;; 外部接口构造
 (defparameter *trie* (make-trie-node)) ; 位于trie根部的node
 (defun add-word (string) (trie-add-word *trie* string))
 (defun find-word (string) (trie-find-word *trie* string))
