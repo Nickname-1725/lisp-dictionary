@@ -4,6 +4,8 @@
   (:export
      :*vocabulary-table*
      :id :spell :n :v :adj :adv :prep
+     :serialize-voc-table
+     :deserialize-voc-table
      :define-word
      :search-word-by-id
      :push-def-by-id
