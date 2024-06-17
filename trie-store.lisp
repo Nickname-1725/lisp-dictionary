@@ -9,7 +9,9 @@
      :add-word
      :find-word
      :mark-word
-     :remove-word))
+     :remove-word
+     :serialize-trie
+     :deserialize-trie))
 (in-package :trie-store)
 
 (defstruct trie-node
