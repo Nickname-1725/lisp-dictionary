@@ -74,7 +74,8 @@
         (let ((new-word (make-vocabulary-word)))
           (setf (vocabulary-word-id new-word) new-id)
           (setf (vocabulary-word-spell new-word) spell)
-          (setf (gethash new-id voc-table) new-word))
+          (setf (gethash new-id voc-table) new-word)
+          new-id)
         (add-vocabulary voc-table spell))))
 (defun search-vocabulary (voc-table id)
   "根据id来获取word信息"

@@ -1,7 +1,7 @@
 (defpackage :trie-store
   (:use :cl)
   (:export
-     ;:*trie*
+     :*trie*
      ;:trie-add-word
      ;:trie-find-word
      ;:trie-mark-node
