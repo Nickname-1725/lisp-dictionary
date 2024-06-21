@@ -5,12 +5,15 @@
 (defparameter *words-db* nil)
 
 ;;;; 数据结构的存取、管理
-(defun create-word (spell)
-  (copy-list `(:spell ,spell
-               :n nil :v nil
-               :adj nil :adv nil
-               :prep nil)))
-(defun add-word (word) (push word *words-db*))
+;(defun create-word (spell)
+;  (copy-list `(:spell ,spell
+;               :n nil :v nil
+;               :adj nil :adv nil
+;               :prep nil)))
+;(defun add-word (word) (push word *words-db*))
+(defun register-word (spell)
+  (trie-store:mark-word (trie-store:add-word spell)
+                        (vocabulary:define-word spell)))
 ; 其中(add-word(create-word spell))
 ; 可以用(mark-word (add-word spell) (define-word spell))代替
 
@@ -22,9 +25,11 @@
 ; 可以用(remove-def-by-id id class-string index)代替
 (defun find-word (spell)
   "从字典中查找单词，若无则返回nil"
-  (car (remove-if-not
-        (lambda (word) (eql spell (getf word :spell)))
-        *words-db*)))
+  ;(car (remove-if-not
+  ;      (lambda (word) (eql spell (getf word :spell)))
+  ;      *words-db*))
+  (vocabulary:search-word-by-id
+   (trie-store:mark-word (trie-store:find-word spell) -1)))
 ; 可以用(find-word spell)代替
 
 (defun remove-word-spell (spell)
@@ -37,39 +42,56 @@
 ; 代替见上，或者也可以不代替
 
 (defun display-word (word)
-  (flet ((display-class-word (word key)
-           (if (getf word key)
-               (format t "~% ~a.~7t~a" key (getf word key)))))
-    (format t ">>> ~a" (getf word :spell))
-    (display-class-word word :n)
-    (display-class-word word :v)
-    (display-class-word word :adj)
-    (display-class-word word :adv)
-    (display-class-word word :prep)
-    (format t "~%")))
+  ;(flet ((display-class-word (word key)
+  ;         (if (getf word key)
+  ;             (format t "~% ~a.~7t~a" key (getf word key)))))
+    ;(format t ">>> ~a" (getf word :spell))
+    ;(display-class-word word :n)
+    ;(display-class-word word :v)
+    ;(display-class-word word :adj)
+    ;(display-class-word word :adv)
+    ;(display-class-word word :prep)
+    word
+    (format t "~%"));)
 ; 可以使用(describe-def-by-id id)
 
 ;;;; 数据库的存档与加载
-(defun save-db (data-base filename)
+(defun save-db (data-base filename &optional (serialize-method nil))
   (with-open-file (out filename
                        :direction :output
                        :if-exists :supersede
                        :if-does-not-exist :create)
     (with-standard-io-syntax
-      (print data-base out))))
-(defmacro load-db (data-base filename)
+      (print (if (eql nil serialize-method)
+                 data-base (funcall serialize-method data-base))
+             out))))
+(defmacro load-db (data-base filename &optional (deserialize-method nil))
   `(let ((file-exists (probe-file ,filename)))
      (when file-exists
-         (with-open-file (in ,filename
-                        :if-does-not-exist :error)
-     (with-standard-io-syntax
-       (setf ,data-base (read in)))))))
+       (with-open-file (in ,filename
+                           :if-does-not-exist :error)
+         (with-standard-io-syntax
+           ,(if (eql nil deserialize-method)
+                `(setf ,data-base (read in))
+                `(setf ,data-base (funcall ,deserialize-method (read in)))))))))
 
 (defparameter *config-root* "~/.config/lisp-dictionary/")
 (defun save-words ()
-  (save-db *words-db* (concatenate 'string *config-root* "dictionary-words.db")))
+  ;(save-db *words-db* (concatenate 'string *config-root* "dictionary-words.db"))
+  (save-db trie-store:*trie*
+           (concatenate 'string *config-root* "trie-store.db")
+           #'trie-store:serialize-trie)
+  (save-db vocabulary:*vocabulary-table*
+           (concatenate 'string *config-root* "vocabulary.db")
+           #'vocabulary:serialize-voc-table))
 (defun load-words ()
-  (load-db *words-db* (concatenate 'string *config-root* "dictionary-words.db")))
+  ;(load-db *words-db* (concatenate 'string *config-root* "dictionary-words.db"))
+  (load-db trie-store:*trie*
+      (concatenate 'string *config-root* "trie-store.db")
+      #'trie-store:deserialize-trie)
+  (load-db vocabulary:*vocabulary-table*
+      (concatenate 'string *config-root* "vocabulary.db")
+      #'vocabulary:deserialize-voc-table))
 
 ;;;; 用户交互功能
 (defmacro clear-CLI-screen ()
@@ -130,13 +152,14 @@
  *repl-user* 'note-down
  (macroexpand `(let ((word (find-word spell)))
                  (if word '("fail") '("succeed")))))
-(flow-chart:def-arc (*repl-user* (main note-down) (note-down symbol))
+(flow-chart:def-arc (*repl-user* (main note-down) (note-down string))
   (let ((spell (cadr cmd-list))) 'target))
 (flow-chart:def-state note-down-succeed (*repl-user* spell)
   (clear-CLI-screen)
   (format t "The target *~a* has been add to our database.~%" spell))
 (flow-chart:def-arc (*repl-user* (note-down note-down-succeed) (succeed))
-  (add-word (create-word spell))
+  ;(add-word (create-word spell))
+  (register-word spell)
   'target)
 (flow-chart:def-state note-down-fail (*repl-user* spell)
   (clear-CLI-screen)
@@ -149,7 +172,7 @@
 
 ;; look-up
 (flow-chart:def-state look-up (*repl-user* spell))
-(flow-chart:def-arc (*repl-user* (main look-up) (look-up symbol))
+(flow-chart:def-arc (*repl-user* (main look-up) (look-up string))
   (let ((spell (cadr cmd-list)))
     'target))
 
