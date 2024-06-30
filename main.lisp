@@ -42,6 +42,7 @@
 ; 代替见上，或者也可以不代替
 
 (defun display-word (word)
+  (format t (vocabulary:describe-def word))
   ;(flet ((display-class-word (word key)
   ;         (if (getf word key)
   ;             (format t "~% ~a.~7t~a" key (getf word key)))))
@@ -51,7 +52,6 @@
     ;(display-class-word word :adj)
     ;(display-class-word word :adv)
     ;(display-class-word word :prep)
-    word
     (format t "~%"));)
 ; 可以使用(describe-def-by-id id)
 
