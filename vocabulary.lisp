@@ -7,11 +7,15 @@
      :serialize-voc-table
      :deserialize-voc-table
      :define-word
+     :describe-def
+     :push-def
+     :correct-def
+     :remove-def
+     ; by-id操作, 可能可以移除
      :search-word-by-id
      :push-def-by-id
      :correct-def-by-id
      :remove-def-by-id
-     :describe-def
      :describe-def-by-id))
 (in-package :vocabulary)
 
@@ -83,22 +87,27 @@
   (gethash id voc-table))
 (defun push-def (voc-word class def-string)
   "向单词释义中添加信息"
-  (if (slot-exists-p voc-word class)
-      (if (listp (slot-value voc-word class))
-          (push def-string (slot-value voc-word class)))))
+  (let ((class (intern (format nil "~a" class) :vocabulary)))
+    (if (slot-exists-p voc-word class)
+        (if (listp (slot-value voc-word class))
+            (push def-string (slot-value voc-word class))))))
 (defun correct-def (voc-word class correct-string index)
   "更正第index条释义"
-  (if (slot-exists-p voc-word class)
-      (if (and (listp (slot-value voc-word class))
-               (< index (length (slot-value voc-word class))))
-          (setf (nth index (slot-value voc-word class)) correct-string))))
+  (let ((class (intern (format nil "~a" class) :vocabulary)))
+    (if (slot-exists-p voc-word class)
+        (if (and (listp (slot-value voc-word class))
+                 (< index (length (slot-value voc-word class))))
+            (setf (nth index (slot-value voc-word class)) correct-string)))))
 (defun remove-def (voc-word class index)
   "删除第index条释义"
-  (if (slot-exists-p voc-word class)
-      (if (and (listp (slot-value voc-word class))
-               (< index (length (slot-value voc-word class))))
-          (let ((item (nth index (slot-value voc-word class))))
-            (delete item (slot-value voc-word class) :start index :end (1+ index))))))
+  (let ((class (intern (format nil "~a" class) :vocabulary)))
+    (if (slot-exists-p voc-word class)
+        (if (and (listp (slot-value voc-word class))
+                 (< index (length (slot-value voc-word class))))
+            (setf (slot-value voc-word class)
+                  (remove (nth index (slot-value voc-word class))
+                          (slot-value voc-word class)
+                          :start index :end (1+ index)))))))
 (defun describe-def (voc-word)
   "获得描述给定单词义项的字符串"
   (let* ((def-string-list
