@@ -17,9 +17,16 @@
 ; 其中(add-word(create-word spell))
 ; 可以用(mark-word (add-word spell) (define-word spell))代替
 
-(defun set-word (word key value)
+(defun def-append-word (word key value)
   "设置特定单词的关键字值，value应为字符串"
-  (setf (getf word key) value))
+  ;(setf (getf word key) value)
+  (vocabulary:push-def word key value))
+(defun def-correct-word (word key value index)
+  "纠正特定单词的词性第index条释义, 用户意义上的index比列表意义上的index多1"
+  (vocabulary:correct-def word key value (1- index)))
+(defun def-remove-word (word key index)
+  "清除特定单词的词性第index条释义, 用户意义上的index比列表意义上的index多1"
+  (vocabulary:remove-def word key (1- index)))
 ; 可以用(correct-def-by-id id class-string correct-string index)代替
 ; 可以用(push-def-by-id id class-string def-string)代替
 ; 可以用(remove-def-by-id id class-string index)代替
@@ -38,7 +45,9 @@
                     *words-db*)))
 ; 暂无代替
 (defun clean-class-word (word key)
-  (set-word word key nil))
+  word key
+  ;(set-word word key nil)
+  )
 ; 代替见上，或者也可以不代替
 
 (defun display-word (word)
@@ -115,7 +124,9 @@
   (display-word word)
   (user-cmd-description
    '(("back" "go back to the main menu.")
-     ("change :key new-meaning" "to change part of the speech of the target."))))
+     ("append :key new-meaning " "to append a definition with part of the speech of the target.")
+     ("correct :key new-meaning indx" "to correct a definition")
+     ("remove :key indx" "to remove a definition"))))
 (defun erase-func (word)
   (clear-CLI-screen)
   (display-word word)
@@ -125,8 +136,8 @@
      ("wipe-clean" "to wipe off the whole target clean."))))
 
 ;; 简易功能封装
-(defun change-func (word key value)
-  (set-word word key (prin1-to-string value)))
+;(defun change-func (word key value)
+;  (set-word word key (prin1-to-string value)))
 (defun wipe-func (word key)
   (clean-class-word word key))
 
@@ -219,11 +230,26 @@
 (flow-chart:def-arc (*repl-user* (edit main) (back))
   (clear-CLI-screen)
   'target)
-(flow-chart:def-arc (*repl-user* (edit edit) (change symbol string))
+(flow-chart:def-arc (*repl-user* (edit edit) (append symbol string))
   (let ((key (cadr cmd-list))
         (value (caddr cmd-list)))
-    (change-func word key value)
+    ;(change-func word key value)
+    (def-append-word word key value)
     'target))
+(flow-chart:def-arc (*repl-user* (edit edit) (correct symbol string integer))
+  (let ((key (cadr cmd-list))
+        (value (caddr cmd-list))
+        (index (cadddr cmd-list)))
+    ;(change-func word key value)
+    (def-correct-word word key value index)
+    'target))
+(flow-chart:def-arc (*repl-user* (edit edit) (remove symbol integer))
+  (let ((key (cadr cmd-list))
+        (index (caddr cmd-list)))
+    ;(change-func word key value)
+    (def-remove-word word key index)
+    'target))
+
 (flow-chart:def-arc (*repl-user* (note-down-succeed edit) ())
   (let ((word (find-word spell)))
     'target))
