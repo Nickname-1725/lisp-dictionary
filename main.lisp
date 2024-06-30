@@ -5,21 +5,12 @@
 (defparameter *words-db* nil)
 
 ;;;; 数据结构的存取、管理
-;(defun create-word (spell)
-;  (copy-list `(:spell ,spell
-;               :n nil :v nil
-;               :adj nil :adv nil
-;               :prep nil)))
-;(defun add-word (word) (push word *words-db*))
 (defun register-word (spell)
   (trie-store:mark-word (trie-store:add-word spell)
                         (vocabulary:define-word spell)))
-; 其中(add-word(create-word spell))
-; 可以用(mark-word (add-word spell) (define-word spell))代替
 
 (defun def-append-word (word key value)
   "设置特定单词的关键字值，value应为字符串"
-  ;(setf (getf word key) value)
   (vocabulary:push-def word key value))
 (defun def-correct-word (word key value index)
   "纠正特定单词的词性第index条释义, 用户意义上的index比列表意义上的index多1"
@@ -27,17 +18,11 @@
 (defun def-remove-word (word key index)
   "清除特定单词的词性第index条释义, 用户意义上的index比列表意义上的index多1"
   (vocabulary:remove-def word key (1- index)))
-; 可以用(correct-def-by-id id class-string correct-string index)代替
-; 可以用(push-def-by-id id class-string def-string)代替
-; 可以用(remove-def-by-id id class-string index)代替
+
 (defun find-word (spell)
   "从字典中查找单词，若无则返回nil"
-  ;(car (remove-if-not
-  ;      (lambda (word) (eql spell (getf word :spell)))
-  ;      *words-db*))
   (vocabulary:search-word-by-id
    (trie-store:mark-word (trie-store:find-word spell) -1)))
-; 可以用(find-word spell)代替
 
 (defun remove-word-spell (spell)
   (setf *words-db* (remove-if
@@ -52,17 +37,7 @@
 
 (defun display-word (word)
   (format t (vocabulary:describe-def word))
-  ;(flet ((display-class-word (word key)
-  ;         (if (getf word key)
-  ;             (format t "~% ~a.~7t~a" key (getf word key)))))
-    ;(format t ">>> ~a" (getf word :spell))
-    ;(display-class-word word :n)
-    ;(display-class-word word :v)
-    ;(display-class-word word :adj)
-    ;(display-class-word word :adv)
-    ;(display-class-word word :prep)
-    (format t "~%"));)
-; 可以使用(describe-def-by-id id)
+    (format t "~%"));
 
 ;;;; 数据库的存档与加载
 (defun save-db (data-base filename &optional (serialize-method nil))
@@ -86,7 +61,6 @@
 
 (defparameter *config-root* "~/.config/lisp-dictionary/")
 (defun save-words ()
-  ;(save-db *words-db* (concatenate 'string *config-root* "dictionary-words.db"))
   (save-db trie-store:*trie*
            (concatenate 'string *config-root* "trie-store.db")
            #'trie-store:serialize-trie)
@@ -94,7 +68,6 @@
            (concatenate 'string *config-root* "vocabulary.db")
            #'vocabulary:serialize-voc-table))
 (defun load-words ()
-  ;(load-db *words-db* (concatenate 'string *config-root* "dictionary-words.db"))
   (load-db trie-store:*trie*
       (concatenate 'string *config-root* "trie-store.db")
       #'trie-store:deserialize-trie)
@@ -136,8 +109,6 @@
      ("wipe-clean" "to wipe off the whole target clean."))))
 
 ;; 简易功能封装
-;(defun change-func (word key value)
-;  (set-word word key (prin1-to-string value)))
 (defun wipe-func (word key)
   (clean-class-word word key))
 
@@ -169,7 +140,6 @@
   (clear-CLI-screen)
   (format t "The target *~a* has been add to our database.~%" spell))
 (flow-chart:def-arc (*repl-user* (note-down note-down-succeed) (succeed))
-  ;(add-word (create-word spell))
   (register-word spell)
   'target)
 (flow-chart:def-state note-down-fail (*repl-user* spell)
@@ -200,8 +170,6 @@
   (clear-CLI-screen)
   'target)
 (flow-chart:def-arc (*repl-user* (look-up-succeed look-up-succeed) ())
-  ;(clear-CLI-screen)
-  ;(format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
 (flow-chart:def-state look-up-fail (*repl-user* spell)
@@ -233,20 +201,17 @@
 (flow-chart:def-arc (*repl-user* (edit edit) (append symbol string))
   (let ((key (cadr cmd-list))
         (value (caddr cmd-list)))
-    ;(change-func word key value)
     (def-append-word word key value)
     'target))
 (flow-chart:def-arc (*repl-user* (edit edit) (correct symbol string integer))
   (let ((key (cadr cmd-list))
         (value (caddr cmd-list))
         (index (cadddr cmd-list)))
-    ;(change-func word key value)
     (def-correct-word word key value index)
     'target))
 (flow-chart:def-arc (*repl-user* (edit edit) (remove symbol integer))
   (let ((key (cadr cmd-list))
         (index (caddr cmd-list)))
-    ;(change-func word key value)
     (def-remove-word word key index)
     'target))
 
@@ -254,8 +219,6 @@
   (let ((word (find-word spell)))
     'target))
 (flow-chart:def-arc (*repl-user* (edit edit) ())
-  ;(clear-CLI-screen)
-  ;(format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
 ;; erase
@@ -294,8 +257,6 @@
   'target)
 
 (flow-chart:def-arc (*repl-user* (erase erase) ())
-  ;(clear-CLI-screen)
-  ;(format t "Not a valid command. (✿ ◕ __ ◕ )~%")
   'target)
 
 ;; store
