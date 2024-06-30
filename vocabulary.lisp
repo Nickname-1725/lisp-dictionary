@@ -11,6 +11,7 @@
      :push-def-by-id
      :correct-def-by-id
      :remove-def-by-id
+     :describe-def
      :describe-def-by-id))
 (in-package :vocabulary)
 
@@ -112,7 +113,9 @@
                                      def-list))))))
          (def-string-list (remove nil def-string-list))
          (def-string (apply #'concatenate (cons 'string def-string-list))))
-    def-string))
+    (concatenate 'string
+                 (format nil ">>> ~a~%" (vocabulary-word-spell voc-word))
+                 def-string)))
 
 (defun define-word (spell)
   (add-vocabulary *vocabulary-table* spell))
