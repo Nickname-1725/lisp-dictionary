@@ -11,6 +11,8 @@
      :push-def
      :correct-def
      :remove-def
+     :dump-spell-vocabulary
+     :delete-word
      ; by-id操作, 可能可以移除
      :search-word-by-id
      :push-def-by-id
@@ -82,6 +84,9 @@
           (setf (gethash new-id voc-table) new-word)
           new-id)
         (add-vocabulary voc-table spell))))
+(defun remove-vocabulary-by-id (voc-table id)
+  "根据id来删除word"
+  (remhash id voc-table))
 (defun search-vocabulary (voc-table id)
   "根据id来获取word信息"
   (gethash id voc-table))
@@ -130,6 +135,13 @@
   (add-vocabulary *vocabulary-table* spell))
 (defun search-word-by-id (id)
   (search-vocabulary *vocabulary-table* id))
+(defun dump-spell-vocabulary (voc-word)
+  "获取单词的拼写"
+  (vocabulary-word-spell voc-word))
+(defun delete-word (voc-word)
+  "删除一个word"
+  ;(trie-store:remove-word (vocabulary-word-spell voc-word))
+  (remove-vocabulary-by-id *vocabulary-table* (vocabulary-word-id voc-word)))
 (defun string-word-class(class-string)
   "给定字符串寻找代表单词词性的符号"
   (let* ((class-list '(("n" n) ("v" v) ("adj" adj) ("adv" adv) ("prep" prep)))
