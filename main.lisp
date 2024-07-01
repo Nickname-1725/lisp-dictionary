@@ -21,19 +21,13 @@
 
 (defun find-word (spell)
   "从字典中查找单词，若无则返回nil"
-  (vocabulary:search-word-by-id
-   (trie-store:mark-word (trie-store:find-word spell) -1)))
+  (let ((trie-find (trie-store:find-word spell)))
+    (when trie-find
+      (vocabulary:search-word-by-id (trie-store:mark-word trie-find -1)))))
 
-(defun remove-word-spell (spell)
-  (setf *words-db* (remove-if
-                    #'(lambda (word) (eq spell (getf word :spell)))
-                    *words-db*)))
-; 暂无代替
-(defun clean-class-word (word key)
-  word key
-  ;(set-word word key nil)
-  )
-; 代替见上，或者也可以不代替
+(defun remove-word (word)
+  (trie-store:remove-word (vocabulary:dump-spell-vocabulary word))
+  (vocabulary:delete-word word))
 
 (defun display-word (word)
   (format t (vocabulary:describe-def word))
@@ -105,12 +99,8 @@
   (display-word word)
   (user-cmd-description
    '(("back" "go back to the main menu.")
-     ("wipe :key" "to wipe off part of the speech of the target.")
+     ("remove :key indx" "to remove a definition")
      ("wipe-clean" "to wipe off the whole target clean."))))
-
-;; 简易功能封装
-(defun wipe-func (word key)
-  (clean-class-word word key))
 
 ;;; CLI构造部分
 (flow-chart:def-init *repl-user* 'main
@@ -230,14 +220,15 @@
 (flow-chart:def-arc (*repl-user* (erase main) (back))
   (clear-CLI-screen)
   'target)
-(flow-chart:def-arc (*repl-user* (erase erase) (wipe symbol))
-  (let ((key (cadr cmd-list)))
-    (wipe-func word key)
+(flow-chart:def-arc (*repl-user* (erase erase) (remove symbol integer))
+  (let ((key (cadr cmd-list))
+        (index (caddr cmd-list)))
+    (def-remove-word word key index)
     'target))
 
 (flow-chart:def-state erase-confirm (*repl-user* word)
   (format t "are you sure you want to wipe the hole target *~a* clean? (˵u_u˵)[y/n]"
-          (getf word :spell))
+          (vocabulary:dump-spell-vocabulary word))
   (finish-output))
 (flow-chart:def-arc (*repl-user* (erase erase-confirm) (wipe-clean))
   (clear-CLI-screen)
@@ -246,7 +237,7 @@
   (format t "yes or no?[y/n]~%")
   'target)
 (flow-chart:def-arc (*repl-user* (erase-confirm main) (y))
-  (remove-word-spell (getf word :spell))
+  (remove-word word)
   (clear-CLI-screen)
   (format t "Neatly-done.~%")
   (read-line)
