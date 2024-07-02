@@ -13,6 +13,7 @@
      :remove-def
      :dump-spell-vocabulary
      :delete-word
+     :count-words
      ; by-id操作, 可能可以移除
      :search-word-by-id
      :push-def-by-id
@@ -29,8 +30,6 @@
   (adj nil :type list)
   (adv nil :type list)
   (prep nil :type list))
-
-(defparameter *vocabulary-table* (make-hash-table))
 
 ;;; 序列化方法
 (defmethod serialize ((table hash-table) &optional (word-handler nil))
@@ -90,6 +89,10 @@
 (defun search-vocabulary (voc-table id)
   "根据id来获取word信息"
   (gethash id voc-table))
+(defun count-vocabulary (voc-table)
+  "数出词汇表中包含的词汇量"
+  (hash-table-count voc-table))
+
 (defun push-def (voc-word class def-string)
   "向单词释义中添加信息"
   (let ((class (intern (format nil "~a" class) :vocabulary)))
@@ -131,6 +134,10 @@
                  (format nil ">>> ~a~%" (vocabulary-word-spell voc-word))
                  def-string)))
 
+;;; 实例化
+(defparameter *vocabulary-table* (make-hash-table))
+
+(defun count-words () (count-vocabulary *vocabulary-table*))
 (defun define-word (spell)
   (add-vocabulary *vocabulary-table* spell))
 (defun search-word-by-id (id)
