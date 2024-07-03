@@ -14,12 +14,7 @@
      :dump-spell-vocabulary
      :delete-word
      :count-words
-     ; by-id操作, 可能可以移除
-     :search-word-by-id
-     :push-def-by-id
-     :correct-def-by-id
-     :remove-def-by-id
-     :describe-def-by-id))
+     :search-word-by-id))
 (in-package :vocabulary)
 
 (defstruct vocabulary-word
@@ -147,7 +142,6 @@
   (vocabulary-word-spell voc-word))
 (defun delete-word (voc-word)
   "删除一个word"
-  ;(trie-store:remove-word (vocabulary-word-spell voc-word))
   (remove-vocabulary-by-id *vocabulary-table* (vocabulary-word-id voc-word)))
 (defun string-word-class(class-string)
   "给定字符串寻找代表单词词性的符号"
@@ -156,15 +150,3 @@
                            :test #'(lambda (x item) (string-equal x (car item)))))
          (class (cadr class-find)))
     class))
-(defun push-def-by-id (id class-string def-string)
-  (let ((class (string-word-class class-string)))
-    (push-def (search-vocabulary *vocabulary-table* id) class def-string)))
-(defun correct-def-by-id (id class-string correct-string index)
-  (let ((class (string-word-class class-string)))
-    (correct-def (search-vocabulary *vocabulary-table* id)
-                 class correct-string index)))
-(defun remove-def-by-id (id class-string index)
-  (let ((class (string-word-class class-string)))
-    (remove-def (search-vocabulary *vocabulary-table* id) class index)))
-(defun describe-def-by-id (id)
-  (describe-def (search-vocabulary *vocabulary-table* id)))
