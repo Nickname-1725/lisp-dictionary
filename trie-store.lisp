@@ -8,6 +8,7 @@
      ;:trie-remove-word
      :add-word
      :find-word
+     :fuzzy-find-word
      :mark-word
      :remove-word
      :serialize-trie
@@ -94,6 +95,17 @@
                     (if (eql nil arc-find) nil
                         (trie-arc-node arc-find)))))
             char-list :initial-value tr-node)))
+(defun trie-fuzzy-find-word (tr-node string)
+  "从trie中查找前半部分匹配string的单词, 返回字符串列表"
+  (let ((trie-find (trie-find-word tr-node string)))
+    (when trie-find
+      (let* ((fuzzy-match-list (trie-node-children trie-find))
+             (next-char-list (mapcar #'(lambda (arc) (trie-arc-char arc))
+                                     fuzzy-match-list))
+             (fuzzy-match-words
+               (mapcar #'(lambda (char) (format nil "~a~a(...)" string char))
+                       next-char-list)))
+        fuzzy-match-words))))
 (defun trie-mark-node (tr-node id &rest force-p)
   "给trie中的node标记id，返回操作后节点的id~@
    默认仅当未标记时使用；当force-p为真时强行更改id"
@@ -134,5 +146,6 @@
 (defparameter *trie* (make-trie-node)) ; 位于trie根部的node
 (defun add-word (string) (trie-add-word *trie* string))
 (defun find-word (string) (trie-find-word *trie* string))
+(defun fuzzy-find-word (string) (trie-fuzzy-find-word *trie* string))
 (defun mark-word (trie-word id) (trie-mark-node trie-word id))
 (defun remove-word (string) (trie-remove-word *trie* string))
