@@ -24,6 +24,8 @@
   (let ((trie-find (trie-store:find-word spell)))
     (when trie-find
       (vocabulary:search-word-by-id (trie-store:mark-word trie-find -1)))))
+(defun fuzzy-find-word (spell)
+  (trie-store:fuzzy-find-word spell))
 
 (defun remove-word (word)
   (trie-store:remove-word (vocabulary:dump-spell-vocabulary word))
@@ -168,6 +170,7 @@
   (format t "The taget *~a* does not exist. (ﾉ ◕ ヮ ◕ )ﾉ~%" spell)
   (user-cmd-description
    '(("note-down" "note-down the word.")
+     ("fuzzy" "attempt to fuzzily match the word.")
      ("back" "go back to the main menu."))))
 (flow-chart:def-arc (*repl-user* (look-up look-up-fail) (fail))
   'target)
@@ -179,6 +182,14 @@
   'target)
 (flow-chart:def-arc (*repl-user* (look-up-fail look-up-fail) ())
   'target)
+(flow-chart:def-state look-up-fuzzy (*repl-user* fuzzy-match-list)
+  (clear-CLI-screen)
+  (format t "Here you go. ~%")
+  (format t "~{~a; ~}" fuzzy-match-list)
+  'target)
+(flow-chart:def-arc (*repl-user* (look-up-fail look-up-fuzzy) (fuzzy))
+  (let ((fuzzy-match-list (fuzzy-find-word spell)))
+    'target))
 
 ;; edit
 (flow-chart:def-state edit (*repl-user* word)
