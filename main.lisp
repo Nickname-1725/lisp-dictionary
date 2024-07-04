@@ -199,7 +199,7 @@
          (fuzzy-match-list (fuzzy-find-word spell)))
     'target))
 (flow-chart:def-arc (*repl-user* (look-up-fuzzy main) (back))
-  'target)
+  (clear-CLI-screen) 'target)
 (flow-chart:def-arc (*repl-user* (look-up-fuzzy look-up) (look-up string))
   (let ((spell (cadr cmd-list)))
     'target))
