@@ -205,7 +205,7 @@
     'target))
 (flow-chart:def-arc (*repl-user* (look-up-fuzzy look-up-fuzzy) nil)
   'target)
-(flow-chart:def-arc (*repl-user* (look-up-succeed look-up-fuzzy) nil)
+(flow-chart:def-arc (*repl-user* (look-up-succeed look-up-fuzzy) (fuzzy))
   (let ((fuzzy-match-list (fuzzy-find-word spell))) 'target))
 
 ;; edit
