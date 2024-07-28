@@ -1,7 +1,5 @@
 "本脚本用于实现单词本"
-(load "trie-store.lisp")
-(load "vocabulary.lisp")
-(load "flow-chart.lisp")
+
 (defparameter *words-db* nil)
 
 ;;;; 数据结构的存取、管理

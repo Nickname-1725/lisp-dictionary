@@ -9,7 +9,6 @@
      :set-state-reader))
 (in-package :flow-chart)
 
-(ql:quickload :cl-ppcre)
 (defun command-read-default ()
   "通用解析用户输入，输出字符串列表"
   (cl-ppcre:split "\\s+" (string-trim " " (read-line))))
